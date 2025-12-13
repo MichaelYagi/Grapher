@@ -2,7 +2,6 @@
 class GrapherApp {
     constructor() {
         this.graphRenderer = new GraphRenderer('graph');
-        this.parameterController = new ParameterController('parameters-container');
         this.currentExpression = '';
         this.currentVariables = [];
         this.currentParameters = {};
@@ -30,9 +29,7 @@ class GrapherApp {
         // Initialize with default expression
         this.validateAndParseExpression(document.getElementById('expression').value);
         
-        // Enable parameter controller features
-        this.parameterController.enableKeyboardShortcuts();
-        this.parameterController.enableAccessibility();
+
         
         console.log('Grapher app initialized');
     }
@@ -64,11 +61,7 @@ class GrapherApp {
             this.graphRenderer.toggleGrid();
         });
 
-        // Parameter changes
-        this.parameterController.onParametersChanged((parameters) => {
-            this.currentParameters = parameters;
-            this.updateFunctionWithNewParameters();
-        });
+
 
         // Window resize
         window.addEventListener('resize', () => {
@@ -93,7 +86,7 @@ async validateAndParseExpression(expression) {
                 this.currentExpressionType = result.expression_type || 'explicit';
                 this.currentParameters = result.parameters || {};
                 this.showValidationSuccess();
-                this.updateParameterControls();
+
                 this.updateExpressionTypeDisplay(result);
             } else {
                 this.showValidationError(result.error);
@@ -139,17 +132,7 @@ async validateAndParseExpression(expression) {
         inputGroup.appendChild(typeDisplay);
     }
 
-    updateParameterControls() {
-        // Clear existing parameter controls
-        this.parameterController.clearParameters();
-        
-        // Add controls for parameters (variables that are not x, y, or t)
-        const parameters = this.currentVariables.filter(v => !['x', 'y', 't'].includes(v));
-        
-        if (parameters.length > 0) {
-            this.parameterController.setParameters(parameters);
-        }
-    }
+
 
         
 
@@ -186,11 +169,11 @@ async validateAndParseExpression(expression) {
             this.setValidationState('valid', 'Valid expression (offline mode)');
             this.currentExpression = expression;
             this.currentVariables = variables;
-            this.parameterController.setParameters(variables, expression);
+
             plotButton.disabled = false;
         } catch (error) {
             this.setValidationState('invalid', 'Invalid expression syntax');
-            this.parameterController.clearParameters();
+
             plotButton.disabled = true;
         }
     }
@@ -307,39 +290,11 @@ async plotFunction() {
             .replace(/e/g, 'Math.E')
             .replace(/\^/g, '**');
 
-        const variables = ['x', ...this.currentVariables.filter(v => v !== 'x')];
-        const values = [x, ...variables.slice(1).map(v => this.currentParameters[v] || 0)];
-        
-        const func = new Function(...variables, `return ${expr}`);
-        return func(...values);
+        const func = new Function('x', `return ${expr}`);
+        return func(x);
     }
 
-    async updateFunctionWithNewParameters() {
-        if (!this.currentExpression || !this.isBackendAvailable) {
-            return;
-        }
 
-        try {
-            const result = await apiClient.evaluateExpression(
-                this.currentExpression,
-                this.currentParameters,
-                [-5, 5], // 10x10 viewport
-                1000
-            );
-
-            if (result.graph_data && result.graph_data.coordinates) {
-                this.graphRenderer.removeFunction(this.currentExpression);
-                this.graphRenderer.plotFunction(
-                    this.currentExpression,
-                    result.graph_data.coordinates,
-                    0
-                );
-            }
-        } catch (error) {
-            console.error('Parameter update error:', error);
-            // Don't show error for parameter updates to avoid annoying the user
-        }
-    }
 
     async checkBackendAvailability() {
         try {
@@ -394,11 +349,7 @@ async plotFunction() {
         this.plotFunction();
     }
 
-    setParameters(parameters) {
-        Object.keys(parameters).forEach(variable => {
-            this.parameterController.setParameterValue(variable, parameters[variable]);
-        });
-    }
+
 
     async addPlot(expression) {
         // Check if plot already exists

@@ -148,12 +148,45 @@ class ExpressionParser:
             'sinh', 'cosh', 'tanh', 'log10', 'log2', 'floor', 'ceil', 'round', 'sign'
         ]
         
-# Step 1: Handle number-function cases (highest priority)
-        # 2sin -> 2*sin, 3cos -> 3*cos (FIXES YOUR ISSUE)
+        # Step 1: Handle function-variable cases first (highest priority)
+        # sinx -> sin(x), cosx -> cos(x), etc.
         for func in function_names:
-            result = re.sub(rf'(\d){func}(?!\w)', rf'\1*{func}', result)
+            # Handle sinx -> sin(x) where x is a single variable
+            result = re.sub(rf'{func}([a-zA-Z])(?!\w)', rf'{func}(\1)', result)
         
-# Step 3: Handle basic cases (no function names to worry about now)
+        # Step 2: Handle number-function cases
+        # 2sin(x) -> 2*sin(x), 2sin -> 2*sin
+        for func in function_names:
+            # Handle 2sin(x) -> 2*sin(x)
+            result = re.sub(rf'(\d+){func}\s*\(', rf'\1*{func}(', result)
+            # Handle 2sin -> 2*sin (standalone function name)
+            result = re.sub(rf'(\d+){func}(?!\w)', rf'\1*{func}', result)
+        
+        # Step 3: Handle variable-function cases
+        # xsin(x) -> x*sin(x), xsin -> x*sin, xcosy -> x*cos(y)
+        for func in function_names:
+            # Handle xsin(x) -> x*sin(x)
+            result = re.sub(rf'([a-zA-Z]){func}\s*\(', rf'\1*{func}(', result)
+            # Handle xcosy -> x*cos(y) where y is a single variable
+            result = re.sub(rf'([a-zA-Z]){func}([a-zA-Z])(?!\w)', rf'\1*{func}(\2)', result)
+            # Handle xsin -> x*sin (standalone function name)
+            result = re.sub(rf'([a-zA-Z]){func}(?!\w)(?!\()', rf'\1*{func}', result)
+        
+        # Step 4: Handle function-function cases (after function-variable is handled)
+        # This should now work on sin(x)cosy -> sin(x)*cos(y)
+        for func1 in function_names:
+            for func2 in function_names:
+                # Handle func1(x)func2y -> func1(x)*func2(y)
+                result = re.sub(rf'{func1}\([^)]*\){func2}([a-zA-Z])(?!\w)', rf'{func1}()*{func2}(\1)', result)
+                # Handle func1(x)func2( -> func1(x)*func2(
+                result = re.sub(rf'{func1}\([^)]*\){func2}\s*\(', rf'{func1}()*{func2}(', result)
+        
+        # Step 4.5: Handle remaining function-variable cases that might have been missed
+        # This catches cases like sinx in sinxcosy that weren't processed earlier
+        for func in function_names:
+            result = re.sub(rf'{func}([a-zA-Z])(?!\w)', rf'{func}(\1)', result)
+        
+        # Step 5: Handle basic cases
         # 2x -> 2*x
         result = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', result)
         
@@ -171,17 +204,6 @@ class ExpressionParser:
         for func in function_names:
             result = result.replace(f'FUNC_{func}_CALL_', f'{func}(')
         
-        # Step 2: Handle variable-function cases - but NOT if followed by parentheses
-        # xsin -> x*sin, but NOT sin(x)
-        for func in function_names:
-            result = re.sub(rf'\b{func}(?!\w)(?!\()', f'TEMP_{func}', result)
-        
-        for func in function_names:
-            result = re.sub(rf'([a-zA-Z])TEMP_{func}', rf'\1*{func}', result)
-        
-        for func in function_names:
-            result = result.replace(f'TEMP_{func}', func)
-        
         # (x+1)2 -> (x+1)*2
         result = re.sub(r'\)(\d)', r')*\1', result)
         
@@ -191,13 +213,20 @@ class ExpressionParser:
         # (x+1)(y+2) -> (x+1)*(y+2)
         result = re.sub(r'\)\s*\(', r')*(', result)
         
-        # Step 4: Handle variable-variable cases (apply repeatedly for xyz -> x*y*z)
-        changed = True
-        while changed:
-            old_result = result
-            # Only apply to consecutive single letters to avoid function names
-            result = re.sub(r'\b([a-zA-Z])\b([a-zA-Z])\b', r'\1*\2', result)
-            changed = (old_result != result)
+        # Step 6: Handle simple variable-variable cases only (avoid breaking function names)
+        # Only handle the most obvious cases: consecutive single letters that are clearly variables
+        # Use a very conservative approach to avoid breaking function names
+        
+        # Only apply to patterns that are clearly not function names
+        # Look for single letter followed by single letter, where neither is part of a function name
+        # This is a simplified approach that handles the most common cases safely
+        
+        # Handle xy, xz, yz, etc. but only when they're standalone
+        # Use negative lookbehind and lookahead to avoid function names
+        result = re.sub(r'(?<!\w)([a-zA-Z])([a-zA-Z])(?!\w)', r'\1*\2', result)
+        
+        # Apply again for cases like xyz -> xy*z -> x*y*z
+        result = re.sub(r'(?<!\w)([a-zA-Z])([a-zA-Z])(?!\w)', r'\1*\2', result)
         
         return result
     

@@ -153,63 +153,7 @@
             transform: none;
         }
 
-        .parameters-section {
-            margin-top: 30px;
-        }
 
-        .parameter-control {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: white;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-        }
-
-        .parameter-control h4 {
-            margin-bottom: 12px;
-            color: #495057;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .parameter-slider {
-            flex: 1;
-            -webkit-appearance: none;
-            height: 6px;
-            border-radius: 3px;
-            background: #e9ecef;
-            outline: none;
-            transition: background 0.3s;
-        }
-
-        .parameter-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .parameter-slider::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .parameter-value {
-            min-width: 60px;
-            text-align: center;
-            font-weight: 600;
-            color: #495057;
-        }
 
         #graph {
             border: 2px solid #e9ecef;
@@ -275,17 +219,9 @@
                     >
                     <div id="validation-message"></div>
                 </div>
+
                 
-                <div class="input-group">
-                    <button id="plot-btn" class="btn">Plot Function</button>
-                </div>
                 
-                <div class="parameters-section">
-                    <h3>Parameters</h3>
-                    <div id="parameters-container">
-                        <!-- Dynamic parameter controls will be added here -->
-                    </div>
-                </div>
             </div>
             
             <div class="graph-container">
@@ -301,7 +237,6 @@
 
     <script src="js/api-client.js"></script>
     <script src="js/graph-renderer.js"></script>
-    <script src="js/param-controller.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
