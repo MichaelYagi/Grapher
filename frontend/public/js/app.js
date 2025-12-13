@@ -69,17 +69,21 @@ constructor() {
     debounceExpressionValidation(expression) {
         clearTimeout(this.debounceTimer);
         this.debounceTimer = setTimeout(() => {
-            this.validateAndParseExpression(expression);
+            this.validateAndParseExpression(expression, false); // Silent validation during typing
         }, 300);
     }
 
-    async validateAndParseExpression(expression) {
+    async validateAndParseExpression(expression, showMessage = false) {
         const inputElement = document.getElementById('expression');
         const validationMessage = document.getElementById('validation-message');
         const plotButton = document.getElementById('plot-btn');
 
         if (!expression.trim()) {
-            this.setValidationState('empty', 'Enter a mathematical expression');
+            if (showMessage) {
+                this.setValidationState('empty', 'Enter a mathematical expression');
+            } else {
+                this.clearValidationState();
+            }
             return;
         }
 
@@ -89,14 +93,17 @@ constructor() {
                 const result = await apiClient.parseExpression(expression);
                 
                 if (result.is_valid) {
-                    this.setValidationState('valid', 'Valid expression');
+                    if (showMessage) {
+                        this.setValidationState('valid', 'Valid expression');
+                    }
                     this.currentExpression = expression;
                     this.currentVariables = result.variables;
 
                     plotButton.disabled = false;
                 } else {
-                    this.setValidationState('invalid', result.error || 'Invalid expression');
-
+                    if (showMessage) {
+                        this.setValidationState('invalid', result.error || 'Invalid expression');
+                    }
                     plotButton.disabled = true;
                 }
             } else {
@@ -105,7 +112,9 @@ constructor() {
             }
         } catch (error) {
             console.error('Expression validation error:', error);
-            this.setValidationState('invalid', `Validation failed: ${error.message}`);
+            if (showMessage) {
+                this.setValidationState('invalid', `Validation failed: ${error.message}`);
+            }
             plotButton.disabled = true;
         }
     }
@@ -190,6 +199,9 @@ constructor() {
             plotButton.textContent = 'Plotting...';
             
             this.showError(null);
+
+            // Validate with messages shown before plotting
+            await this.validateAndParseExpression(this.currentExpression, true);
 
             if (this.isBackendAvailable) {
                 await this.plotWithBackend();

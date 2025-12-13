@@ -481,20 +481,11 @@ class ExpressionEvaluator:
         Parse expression and classify its type with detailed information
         """
         try:
-            print("expression")
-            print(expression)
-
             # Preprocess expression
             processed_expr = self.parser.preprocess_expression(expression)
 
-            print("processed_expr")
-            print(processed_expr)
-
             # Determine expression type
             expr_type = self.parser.parse_expression_type(processed_expr)
-
-            print("expr_type")
-            print(expr_type)
             
             # For implicit equations, handle directly without AST parsing
             if expr_type == 'implicit':
