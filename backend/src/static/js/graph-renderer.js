@@ -182,10 +182,10 @@ renderGrid() {
             .attr('class', 'x-label')
             .attr('x', this.innerWidth / 2)
             .attr('y', this.innerHeight - 5)
-            .style('text-anchor', 'middle')
+            .style('text-anchor', 'top')
             .style('fill', this.options.axisColors.x)
             .style('font-weight', 'bold')
-            .text('x');
+            .text('y');
 
         this.mainGroup
             .append('text')
@@ -195,7 +195,7 @@ renderGrid() {
             .style('text-anchor', 'start')
             .style('fill', this.options.axisColors.y)
             .style('font-weight', 'bold')
-            .text('y');
+            .text('x');
     }
 
     plotFunction(expression, coordinates, colorIndex = 0) {
