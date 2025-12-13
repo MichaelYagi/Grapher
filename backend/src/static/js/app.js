@@ -9,6 +9,14 @@ class GrapherApp {
         this.debounceTimer = null;
         this.isBackendAvailable = false;
         
+        // Plot management
+        this.plots = [];
+        this.plotIdCounter = 0;
+        this.functionColors = [
+            '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', 
+            '#ec4899', '#84cc16', '#f97316', '#3b82f6', '#a855f7'
+        ];
+        
         this.initialize();
     }
 
@@ -32,7 +40,6 @@ class GrapherApp {
     setupEventListeners() {
         const expressionInput = document.getElementById('expression');
         const plotButton = document.getElementById('plot-btn');
-        const resetViewButton = document.getElementById('reset-view-btn');
         const toggleGridButton = document.getElementById('toggle-grid-btn');
 
         // Expression input events
@@ -53,10 +60,6 @@ class GrapherApp {
         });
 
         // Graph control buttons
-        resetViewButton.addEventListener('click', () => {
-            this.graphRenderer.resetView();
-        });
-
         toggleGridButton.addEventListener('click', () => {
             this.graphRenderer.toggleGrid();
         });
@@ -221,54 +224,35 @@ showValidationSuccess(message = 'Valid expression') {
         }
     }
 
-    async plotFunction() {
+async plotFunction() {
         if (!this.currentExpression) {
             return;
         }
 
         const plotButton = document.getElementById('plot-btn');
         const originalText = plotButton.textContent;
-        
-        try {
-            plotButton.disabled = true;
-            plotButton.textContent = 'Plotting...';
-            
-            this.showError(null);
+        plotButton.disabled = true;
+        plotButton.textContent = 'Adding...';
 
-            if (this.isBackendAvailable) {
-                await this.plotWithBackend();
-            } else {
-                await this.plotLocally();
-            }
+        try {
+            await this.addPlot(this.currentExpression);
         } catch (error) {
             console.error('Plotting error:', error);
-            this.showError(`Failed to plot function: ${error.message}`);
+            this.showError(`Plotting failed: ${error.message}`);
         } finally {
             plotButton.disabled = false;
             plotButton.textContent = originalText;
         }
     }
 
+        
+
     async plotWithBackend() {
         // Ensure we have valid parameters (object, not array)
-        console.log('Current parameters before fix:', this.currentParameters, typeof this.currentParameters, Array.isArray(this.currentParameters));
+        const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
+                          this.currentParameters : {};
         
-        let parameters = {};
-        if (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) {
-            parameters = this.currentParameters;
-        } else {
-            console.warn('Parameters was not a valid object, using empty object');
-        }
-        
-        const xRange = [-10, 10]; // Use the new 20x20 viewport
-        
-        console.log('Plotting with:', {
-            expression: this.currentExpression,
-            parameters: parameters,
-            parametersType: typeof parameters,
-            parametersIsArray: Array.isArray(parameters),
-            xRange: xRange
-        });
+        const xRange = [-10, 10]; // Use the 20x20 viewport
         
         const result = await apiClient.evaluateExpression(
             this.currentExpression,
@@ -414,6 +398,142 @@ showValidationSuccess(message = 'Valid expression') {
         Object.keys(parameters).forEach(variable => {
             this.parameterController.setParameterValue(variable, parameters[variable]);
         });
+    }
+
+    async addPlot(expression) {
+        // Check if plot already exists
+        if (this.plots.some(plot => plot.expression === expression)) {
+            this.showError('This expression is already plotted');
+            return;
+        }
+
+        const plotId = this.plotIdCounter++;
+        const colorIndex = this.plots.length % this.functionColors.length;
+        const color = this.functionColors[colorIndex];
+        
+        const plot = {
+            id: plotId,
+            expression: expression,
+            color: color,
+            visible: true,
+            data: null,
+            classification: null
+        };
+
+        try {
+            // Get expression classification
+            const classification = await apiClient.parseExpression(expression);
+            plot.classification = classification;
+
+            // Get plot data - ensure parameters is an object
+            const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
+                              this.currentParameters : {};
+            
+            const result = await apiClient.evaluateExpression(
+                expression,
+                parameters,
+                [-10, 10],
+                1000
+            );
+
+            plot.data = result.graph_data.coordinates;
+            
+            // Add to plots array
+            this.plots.push(plot);
+            
+            // Update UI
+            this.renderPlotList();
+            this.updateGraph();
+            
+            this.showSuccess(`Added: ${expression}`);
+            
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    removePlot(plotId) {
+        const index = this.plots.findIndex(plot => plot.id === plotId);
+        if (index !== -1) {
+            this.plots.splice(index, 1);
+            this.renderPlotList();
+            this.updateGraph();
+        }
+    }
+
+    togglePlot(plotId) {
+        const plot = this.plots.find(p => p.id === plotId);
+        if (plot) {
+            plot.visible = !plot.visible;
+            this.renderPlotList();
+            this.updateGraph();
+        }
+    }
+
+    renderPlotList() {
+        const container = document.getElementById('plots-container');
+        
+        if (this.plots.length === 0) {
+            container.innerHTML = '<div class="empty-plots">No functions plotted yet</div>';
+            return;
+        }
+
+        container.innerHTML = this.plots.map(plot => {
+            const typeClass = plot.classification?.type || 'explicit';
+            const typeLabel = {
+                'explicit': 'Function',
+                'implicit': 'Implicit',
+                'parametric': 'Parametric'
+            }[typeClass] || 'Function';
+
+            return `
+                <div class="plot-item">
+                    <div class="plot-info">
+                        <div class="plot-color" style="background-color: ${plot.color}"></div>
+                        <div>
+                            <div class="plot-expression">${plot.expression}</div>
+                            <div class="plot-type">${typeLabel}</div>
+                        </div>
+                    </div>
+                    <div class="plot-controls">
+                        <button class="plot-btn toggle ${plot.visible ? 'active' : ''}" 
+                                onclick="grapherApp.togglePlot(${plot.id})">
+                            ${plot.visible ? 'Hide' : 'Show'}
+                        </button>
+                        <button class="plot-btn delete" onclick="grapherApp.removePlot(${plot.id})">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    updateGraph() {
+        // Clear all functions
+        this.graphRenderer.clearAllFunctions();
+        
+        // Add visible plots with their specific colors
+        this.plots.forEach((plot, index) => {
+            if (plot.visible && plot.data) {
+                // Find the color index for this plot
+                const colorIndex = this.functionColors.indexOf(plot.color);
+                this.graphRenderer.plotFunction(
+                    plot.expression,
+                    plot.data,
+                    colorIndex >= 0 ? colorIndex : index
+                );
+            }
+        });
+    }
+
+    showSuccess(message) {
+        const errorContainer = document.getElementById('error-container');
+        errorContainer.innerHTML = `<div class="success" style="background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">${message}</div>`;
+        
+        setTimeout(() => {
+            errorContainer.innerHTML = '';
+        }, 3000);
     }
 
     resetView() {

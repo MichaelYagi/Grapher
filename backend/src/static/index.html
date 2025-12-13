@@ -253,6 +253,95 @@
             border: 1px solid #f5c6cb;
             margin-bottom: 20px;
         }
+
+        .plots-section {
+            margin-top: 30px;
+        }
+
+        .plot-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .plot-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .plot-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .plot-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .plot-expression {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .plot-type {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+
+        .plot-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .plot-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: background-color 0.2s ease;
+        }
+
+        .plot-btn:hover {
+            background: #f8f9fa;
+        }
+
+        .plot-btn.delete {
+            color: #dc3545;
+        }
+
+        .plot-btn.toggle {
+            color: #6c757d;
+        }
+
+        .plot-btn.toggle.active {
+            color: #28a745;
+        }
+
+        .empty-plots {
+            color: #6c757d;
+            font-style: italic;
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px dashed #dee2e6;
+        }
     </style>
 </head>
 <body>
@@ -286,11 +375,17 @@
                         <!-- Dynamic parameter controls will be added here -->
                     </div>
                 </div>
+                
+                <div class="plots-section">
+                    <h3>Plotted Functions</h3>
+                    <div id="plots-container">
+                        <!-- List of plotted functions will be added here -->
+                    </div>
+                </div>
             </div>
             
             <div class="graph-container">
                 <div class="graph-controls">
-                    <button id="reset-view-btn">Reset View</button>
                     <button id="toggle-grid-btn">Toggle Grid</button>
                 </div>
                 <div id="error-container"></div>
