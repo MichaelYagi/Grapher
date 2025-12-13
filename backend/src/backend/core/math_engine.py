@@ -301,16 +301,10 @@ class ExpressionEvaluator:
             equation = equation.replace('**', '^')
             
             # Simple pattern matching for common equations
-            if 'x^2 + y^2' in equation and '= 1' in equation:
-                # Circle: x^2 + y^2 = 1
-                angles = np.linspace(0, 2*np.pi, num_points)
-                x_coords = np.cos(angles)
-                y_coords = np.sin(angles)
-                return x_coords, y_coords
+            import re
             
-            elif 'x^2 + y^2' in equation:
-                # General circle: x^2 + y^2 = r^2
-                import re
+            # Circle: x^2 + y^2 = r^2
+            if re.search(r'x\^2\s*\+\s*y\^2\s*=', equation):
                 match = re.search(r'=\s*(\d+(?:\.\d+)?)', equation)
                 if match:
                     radius_squared = float(match.group(1))
@@ -319,6 +313,21 @@ class ExpressionEvaluator:
                     x_coords = radius * np.cos(angles)
                     y_coords = radius * np.sin(angles)
                     return x_coords, y_coords
+            
+            # Ellipse: x^2/a^2 + y^2/b^2 = 1 or x^2/a + y^2/b = 1
+            ellipse_match = re.search(r'x\^2\s*/\s*(\d+(?:\.\d+)?)\s*\+\s*y\^2(?:\s*/\s*(\d+(?:\.\d+)?))?\s*=\s*1', equation)
+            if ellipse_match:
+                a_val = float(ellipse_match.group(1))
+                b_val = float(ellipse_match.group(2)) if ellipse_match.group(2) else 1.0
+                
+                # a_val and b_val are the denominators, so semi-axes are sqrt of them
+                a = np.sqrt(a_val)
+                b = np.sqrt(b_val)
+                
+                angles = np.linspace(0, 2*np.pi, num_points)
+                x_coords = a * np.cos(angles)
+                y_coords = b * np.sin(angles)
+                return x_coords, y_coords
             
             # Fallback: return empty arrays
             return np.array([]), np.array([])
