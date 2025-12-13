@@ -40,9 +40,9 @@ class GrapherApp {
         const toggleGridButton = document.getElementById('toggle-grid-btn');
 
         // Expression input events
-        expressionInput.addEventListener('input', (e) => {
-            this.debounceExpressionValidation(e.target.value);
-        });
+        // expressionInput.addEventListener('input', (e) => {
+        //     this.debounceExpressionValidation(e.target.value);
+        // });
 
         expressionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
@@ -208,7 +208,30 @@ showValidationSuccess(message = 'Valid expression') {
     }
 
 async plotFunction() {
+        const expressionInput = document.getElementById('expression');
+        const validationMessage= document.getElementById('validation-message');
+
+        expressionInput.classList.add('valid');
+        expressionInput.classList.remove('invalid');
+        validationMessage.textContent = 'Valid expression';
+
+        this.currentExpression = expressionInput.value;
+
+        const result = await apiClient.parseExpression(this.currentExpression);
+
+        if (!result.is_valid) {
+            this.showError(`Current expression is not valid`);
+            expressionInput.classList.remove('valid');
+            expressionInput.classList.add('invalid');
+            validationMessage.textContent = 'Invalid expression';
+            return;
+        }
+
         if (!this.currentExpression) {
+            this.showError(`Current expression DNE`);
+            expressionInput.classList.remove('valid');
+            expressionInput.classList.add('invalid');
+            validationMessage.textContent = 'Invalid expression';
             return;
         }
 

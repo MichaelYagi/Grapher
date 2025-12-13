@@ -33,9 +33,9 @@ constructor() {
         const toggleGridButton = document.getElementById('toggle-grid-btn');
 
         // Expression input events
-        expressionInput.addEventListener('input', (e) => {
-            this.debounceExpressionValidation(e.target.value);
-        });
+        // expressionInput.addEventListener('input', (e) => {
+        //     this.debounceExpressionValidation(e.target.value);
+        // });
 
         expressionInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
