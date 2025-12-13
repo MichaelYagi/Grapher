@@ -173,13 +173,15 @@ class ExpressionParser:
             result = re.sub(rf'([a-zA-Z]){func}(?!\w)(?!\()', rf'\1*{func}', result)
         
         # Step 4: Handle function-function cases (after function-variable is handled)
-        # This should now work on sin(x)cosy -> sin(x)*cos(y)
+        # This should now work on sin(x)cosy -> sin(x)*cos(y) and sin(x)cos(y) -> sin(x)*cos(y)
         for func1 in function_names:
             for func2 in function_names:
                 # Handle func1(x)func2y -> func1(x)*func2(y)
-                result = re.sub(rf'{func1}\([^)]*\){func2}([a-zA-Z])(?!\w)', rf'{func1}()*{func2}(\1)', result)
+                result = re.sub(rf'({func1}\([^)]*\))({func2})([a-zA-Z])(?!\w)', rf'\1*\2(\3)', result)
                 # Handle func1(x)func2( -> func1(x)*func2(
-                result = re.sub(rf'{func1}\([^)]*\){func2}\s*\(', rf'{func1}()*{func2}(', result)
+                result = re.sub(rf'({func1}\([^)]*\))({func2})\s*\(', rf'\1*\2(', result)
+                # Handle func1(x)func2(y) -> func1(x)*func2(y) (NEW CASE)
+                result = re.sub(rf'({func1}\([^)]*\))({func2})\s*\(\s*([a-zA-Z]+)\s*\)', rf'\1*\2(\3)', result)
         
         # Step 4.5: Handle remaining function-variable cases that might have been missed
         # This catches cases like sinx in sinxcosy that weren't processed earlier
