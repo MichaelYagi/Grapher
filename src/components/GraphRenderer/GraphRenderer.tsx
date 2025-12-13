@@ -4,7 +4,6 @@ import './GraphRenderer.css';
 
 interface GraphRendererProps {
   expressions: Expression[];
-  width?: number;
   height?: number;
   className?: string;
   onInteraction?: (event: GraphInteractionEvent) => void;
@@ -12,12 +11,13 @@ interface GraphRendererProps {
 
 export const GraphRenderer: React.FC<GraphRendererProps> = ({
   expressions,
-  width = 500,
   height = 500,
   className = '',
   onInteraction
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(500);
   const [viewport, setViewport] = useState<Viewport>({
     xMin: -10,
     xMax: 10,
@@ -32,22 +32,22 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
   const cacheRef = useRef(new Map<string, GraphPoint[]>());
 
   // Coordinate transformation utilities
-  const mathToScreen = useCallback((x: number, y: number): { x: number; y: number } => {
+const mathToScreen = useCallback((x: number, y: number): { x: number; y: number } => {
     const screenX = ((x - viewport.xMin) / (viewport.xMax - viewport.xMin)) * width;
-    const screenY = height - ((y - viewport.yMin) / (viewport.yMax - viewport.yMin)) * height;
+    const screenY = width - ((y - viewport.yMin) / (viewport.yMax - viewport.yMin)) * width;
     return { x: screenX, y: screenY };
-  }, [viewport, width, height]);
+  }, [viewport, width]);
 
-  const screenToMath = useCallback((screenX: number, screenY: number): { x: number; y: number } => {
+const screenToMath = useCallback((screenX: number, screenY: number): { x: number; y: number } => {
     const x = (screenX / width) * (viewport.xMax - viewport.xMin) + viewport.xMin;
-    const y = ((height - screenY) / height) * (viewport.yMax - viewport.yMin) + viewport.yMin;
+    const y = ((width - screenY) / width) * (viewport.yMax - viewport.yMin) + viewport.yMin;
     return { x, y };
-  }, [viewport, width, height]);
+  }, [viewport, width]);
 
   // Generate cache key for function points
-  const getCacheKey = useCallback((expression: Expression, viewport: Viewport): string => {
-    return `${expression.id}_${expression.formula}_${viewport.xMin}_${viewport.xMax}_${width}_${height}_${Object.values(expression.variables || {}).map(v => v.value).join('_')}`;
-  }, [width, height]);
+const getCacheKey = useCallback((expression: Expression, viewport: Viewport): string => {
+    return `${expression.id}_${expression.formula}_${viewport.xMin}_${viewport.xMax}_${width}_${width}_${Object.values(expression.variables || {}).map(v => v.value).join('_')}`;
+  }, [width]);
 
   // Sample function points with higher quality
   const sampleFunction = useCallback((expression: Expression, viewport: Viewport): GraphPoint[] => {
@@ -109,21 +109,21 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
     const { xMin, xMax, yMin, yMax } = viewport;
     const xRange = xMax - xMin;
     
-    // Clear canvas with theme-appropriate background
+// Clear canvas with theme-appropriate background
     ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--graph-bg');
-    ctx.fillRect(0, 0, width, height);
+    ctx.fillRect(0, 0, width, width);
 
     // Draw grid lines
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--graph-grid');
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 4]);
 
-    // Vertical grid lines - at every integer
+// Vertical grid lines - at every integer
     for (let x = Math.ceil(xMin); x <= xMax; x += 1) {
       const screen = mathToScreen(x, 0);
       ctx.beginPath();
       ctx.moveTo(screen.x, 0);
-      ctx.lineTo(screen.x, height);
+      ctx.lineTo(screen.x, width);
       ctx.stroke();
     }
 
@@ -142,9 +142,9 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
     ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--graph-axes');
     ctx.lineWidth = 2;
 
-    // X-axis
+// X-axis
     const xAxisY = mathToScreen(0, 0).y;
-    if (xAxisY >= 0 && xAxisY <= height) {
+    if (xAxisY >= 0 && xAxisY <= width) {
       ctx.beginPath();
       ctx.moveTo(0, xAxisY);
       ctx.lineTo(width, xAxisY);
@@ -156,7 +156,7 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
     if (yAxisX >= 0 && yAxisX <= width) {
       ctx.beginPath();
       ctx.moveTo(yAxisX, 0);
-      ctx.lineTo(yAxisX, height);
+      ctx.lineTo(yAxisX, width);
       ctx.stroke();
     }
 
@@ -179,7 +179,7 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
         ctx.fillText(y.toString(), yAxisX + 10, screen.y + 5);
       }
     }
-  }, [viewport, width, height, mathToScreen]);
+  }, [viewport, width, mathToScreen]);
 
   // Draw functions with improved curve rendering
   const drawFunctions = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -289,6 +289,25 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
     animationFrameRef.current = requestAnimationFrame(animate);
   }, [render]);
 
+// Monitor container width changes
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(entries => {
+      const entry = entries[0];
+      if (entry) {
+        setWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   // Initialize canvas and start animation
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -296,7 +315,7 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
 
     // Set canvas size
     canvas.width = width;
-    canvas.height = height;
+    canvas.height = width;
 
     // Start animation loop
     animate();
@@ -306,7 +325,7 @@ export const GraphRenderer: React.FC<GraphRendererProps> = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [width, height, animate]);
+  }, [width, animate]);
 
   // Re-render when expressions or viewport change
   useEffect(() => {
@@ -392,13 +411,13 @@ if (distance < minDistance && distance < 10) { // 10px threshold
     e.preventDefault();
   }, []);
 
-  return (
-    <div className={`graph-renderer ${className}`}>
+return (
+    <div ref={containerRef} className={`graph-renderer ${className}`}>
       <canvas
         ref={canvasRef}
         width={width}
-        height={height}
-        style={{ width: '500px', height: '500px' }}
+        height={width}
+        style={{ width: '100%', height: '100%', aspectRatio: '1' }}
         className="graph-canvas"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

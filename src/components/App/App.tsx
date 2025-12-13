@@ -126,7 +126,6 @@ export const App: React.FC = () => {
                 {expressions.length > 0 ? (
                     <GraphRenderer
                       expressions={expressions}
-                      width={500}
                       height={500}
                       className="graph-canvas"
                     />
