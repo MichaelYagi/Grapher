@@ -275,9 +275,6 @@ constructor() {
         return func(x);
     }
 
-
-    }
-
     async checkBackendAvailability() {
         try {
             const response = await apiClient.healthCheck();
