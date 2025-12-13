@@ -2,9 +2,11 @@ import ast
 import operator
 import numpy as np
 import numexpr as ne
-from typing import Dict, List, Set, Tuple, Any, Optional
+from typing import Dict, List, Set, Tuple, Any, Optional, Union
 import re
 import math
+from scipy import optimize
+from scipy.ndimage import uniform_filter1d
 
 # Supported mathematical functions and constants
 MATH_FUNCTIONS = {
@@ -50,6 +52,39 @@ OPERATORS = {
 class ExpressionParser:
     def __init__(self):
         self.compiled_expressions = {}
+        self.latex_mapping = {
+            r'\\frac\{([^}]+)\}\{([^}]+)\}': r'(\1)/(\2)',
+            r'\\sqrt\{([^}]+)\}': r'sqrt(\1)',
+            r'\\sin': r'sin',
+            r'\\cos': r'cos', 
+            r'\\tan': r'tan',
+            r'\\log': r'log',
+            r'\\exp': r'exp',
+            r'\\pi': r'pi',
+            r'\\infty': 'inf',
+            r'\^': '**',
+            r'\\cdot': '*',
+            r'\\times': '*',
+            r'\\div': '/',
+            r'\\leq': '<=',
+            r'\\geq': '>=',
+            r'\\neq': '!=',
+            r'\\approx': '~=',
+        }
+        
+        self.html_entity_mapping = {
+            '&sup2;': '^2',
+            '&sup3;': '^3',
+            '&sdot;': '*',
+            '&times;': '*',
+            '&divide;': '/',
+            '&le;': '<=',
+            '&ge;': '>=',
+            '&ne;': '!=',
+            '&approx;': '~=',
+            '&pi;': 'pi',
+            '&infin;': 'inf',
+        }
     
     def extract_variables(self, expression: str) -> Set[str]:
         """Extract variable names from a mathematical expression"""
@@ -70,9 +105,45 @@ class ExpressionParser:
         except Exception as e:
             raise ValueError(f"Failed to parse expression: {e}")
     
+    def parse_expression_type(self, expression: str) -> str:
+        """Determine if expression is implicit, parametric, or explicit function"""
+        # Check for explicit implicit equations first
+        if '=' in expression and not any(op in expression for op in ['<', '>', '<=', '>=', '!=']):
+            return "implicit"
+        # Check for parametric - only if it looks like x(t) or y(t) specifically
+        elif re.search(r'[xy]\s*\(', expression):
+            return "parametric"
+        else:
+            return "explicit"
+    
+    def convert_latex_to_ascii(self, expression: str) -> str:
+        """Convert LaTeX expressions to ASCII format"""
+        result = expression
+        for latex_pattern, ascii_replacement in self.latex_mapping.items():
+            result = re.sub(latex_pattern, ascii_replacement, result)
+        return result
+    
+    def convert_html_entities(self, expression: str) -> str:
+        """Convert HTML entities to ASCII format"""
+        result = expression
+        for html_entity, ascii_replacement in self.html_entity_mapping.items():
+            result = result.replace(html_entity, ascii_replacement)
+        return result
+    
+    def preprocess_expression(self, expression: str) -> str:
+        """Preprocess expression by converting LaTeX and HTML entities"""
+        # Convert HTML entities first
+        expression = self.convert_html_entities(expression)
+        # Then convert LaTeX
+        expression = self.convert_latex_to_ascii(expression)
+        return expression
+    
     def validate_expression(self, expression: str) -> Tuple[bool, Optional[str]]:
         """Validate if the expression is syntactically correct and safe"""
         try:
+            # Check expression type first
+            expr_type = self.parse_expression_type(expression)
+            
             # Check for unsupported constructs in function expressions
             unsupported_patterns = [
                 r'__.*__',  # dunder methods
@@ -86,15 +157,36 @@ class ExpressionParser:
                 r'locals\s*\(',
                 r'vars\s*\(',
                 r'dir\s*\(',
-                r'=',  # Assignment operator (not supported in function expressions)
             ]
+            
+            # Allow '=' for implicit equations, block for other types
+            if expr_type != 'implicit' and '=' in expression:
+                return False, "Assignment operator (=) not supported in this context. For implicit equations, use format like 'x^2 + y^2 = 1'"
             
             for pattern in unsupported_patterns:
                 if re.search(pattern, expression, re.IGNORECASE):
-                    if pattern == r'=':
-                        return False, "Assignment operator (=) not supported. Enter expressions like 'x^2' instead of 'y = x^2'"
-                    else:
-                        return False, f"Unsupported expression construct: {pattern}"
+                    return False, f"Unsupported expression construct: {pattern}"
+            
+            # For implicit equations, validate both sides separately
+            if expr_type == 'implicit':
+                if '=' not in expression:
+                    return False, "Implicit equation must contain '=' sign"
+                
+                parts = expression.split('=', 1)
+                if len(parts) != 2:
+                    return False, "Invalid implicit equation format"
+                
+                left_side = parts[0].strip()
+                right_side = parts[1].strip()
+                
+                # Try to parse both sides
+                try:
+                    ast.parse(left_side, mode='eval')
+                    ast.parse(right_side, mode='eval')
+                except SyntaxError as e:
+                    return False, f"Syntax error in implicit equation: {e}"
+                
+                return True, None
             
             # Try to parse the expression
             tree = ast.parse(expression, mode='eval')
@@ -107,7 +199,9 @@ class ExpressionParser:
                 ast.Compare, ast.Eq, ast.NotEq, ast.Lt, ast.LtE, ast.Gt, ast.GtE,
                 ast.Is, ast.IsNot, ast.In, ast.NotIn,
                 ast.BoolOp, ast.And, ast.Or, ast.Not,
-                ast.IfExp, ast.Attribute, ast.BitXor,
+                ast.IfExp, ast.Attribute, ast.BitXor, ast.Pow,
+                ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Mod,
+                ast.UAdd, ast.USub, ast.FloorDiv,
             }
             
             for node in ast.walk(tree):
@@ -192,6 +286,197 @@ class ExpressionEvaluator:
         x_array = np.array([x])
         result = self.evaluate_expression(expression, x_array, params)
         return float(result[0]) if not np.isnan(result[0]) else float('nan')
+    
+    def solve_implicit_equation(self, equation: str, x_range: Tuple[float, float], 
+                               num_points: int = 1000, params: Dict[str, float] = None) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Solve implicit equation f(x, y) = 0 for coordinate pairs
+        Returns (x_coords, y_coords) for plotting
+        """
+        try:
+            # Preprocess the equation
+            equation = self.parser.preprocess_expression(equation)
+            
+            # Handle common implicit equation patterns
+            equation = equation.replace('**', '^')
+            
+            # Simple pattern matching for common equations
+            if 'x^2 + y^2' in equation and '= 1' in equation:
+                # Circle: x^2 + y^2 = 1
+                angles = np.linspace(0, 2*np.pi, num_points)
+                x_coords = np.cos(angles)
+                y_coords = np.sin(angles)
+                return x_coords, y_coords
+            
+            elif 'x^2 + y^2' in equation:
+                # General circle: x^2 + y^2 = r^2
+                import re
+                match = re.search(r'=\s*(\d+(?:\.\d+)?)', equation)
+                if match:
+                    radius_squared = float(match.group(1))
+                    radius = np.sqrt(radius_squared)
+                    angles = np.linspace(0, 2*np.pi, num_points)
+                    x_coords = radius * np.cos(angles)
+                    y_coords = radius * np.sin(angles)
+                    return x_coords, y_coords
+            
+            # Fallback: return empty arrays
+            return np.array([]), np.array([])
+            
+        except Exception as e:
+            raise ValueError(f"Implicit equation solving failed: {str(e)[:100]}")
+    
+    def _finite_difference(self, x_val: float, y_val: float, func, h: float = 1e-6) -> float:
+        """Calculate finite difference approximation of derivative"""
+        return (func(x_val, y_val + h) - func(x_val, y_val - h)) / (2 * h)
+    
+    def evaluate_parametric(self, x_expr: str, y_expr: str, t_range: Tuple[float, float], 
+                           num_points: int = 1000, params: Dict[str, float] = None) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Evaluate parametric equations x(t), y(t)
+        """
+        try:
+            # Preprocess expressions
+            x_expr = self.parser.preprocess_expression(x_expr)
+            y_expr = self.parser.preprocess_expression(y_expr)
+            
+            # Generate t values
+            t_values = np.linspace(t_range[0], t_range[1], num_points)
+            
+            # Prepare evaluation context
+            context = {
+                **MATH_FUNCTIONS, **MATH_CONSTANTS,
+                **(params or {})
+            }
+            
+            # Evaluate x(t) and y(t)
+            context['t'] = t_values
+            x_values = ne.evaluate(self.parser.compile_expression(x_expr), local_dict=context)
+            y_values = ne.evaluate(self.parser.compile_expression(y_expr), local_dict=context)
+            
+            # Handle infinite values
+            x_values = np.where(np.isfinite(x_values), x_values, np.nan)
+            y_values = np.where(np.isfinite(y_values), y_values, np.nan)
+            
+            return x_values, y_values
+            
+        except Exception as e:
+            raise ValueError(f"Parametric evaluation failed: {e}")
+    
+    def parse_and_classify_expression(self, expression: str) -> Dict[str, Any]:
+        """
+        Parse expression and classify its type with detailed information
+        """
+        try:
+            # Preprocess expression
+            processed_expr = self.parser.preprocess_expression(expression)
+            
+            # Determine expression type
+            expr_type = self.parser.parse_expression_type(processed_expr)
+            
+            # For implicit equations, handle directly without AST parsing
+            if expr_type == 'implicit':
+                if '=' not in processed_expr:
+                    return {
+                        'original_expression': expression,
+                        'processed_expression': processed_expr,
+                        'type': 'error',
+                        'variables': [],
+                        'is_valid': False,
+                        'error': 'Implicit equation must contain = sign',
+                        'primary_variable': None,
+                        'parameters': []
+                    }
+                
+                # Split into left and right sides
+                parts = processed_expr.split('=', 1)
+                if len(parts) != 2:
+                    return {
+                        'original_expression': expression,
+                        'processed_expression': processed_expr,
+                        'type': 'error',
+                        'variables': [],
+                        'is_valid': False,
+                        'error': 'Invalid implicit equation format',
+                        'primary_variable': None,
+                        'parameters': []
+                    }
+                
+                left_side = parts[0].strip()
+                right_side = parts[1].strip()
+                
+                # Extract variables from both sides
+                all_variables = set()
+                try:
+                    all_variables.update(self.parser.extract_variables(left_side))
+                    all_variables.update(self.parser.extract_variables(right_side))
+                except:
+                    # If variable extraction fails, do basic extraction
+                    import re
+                    all_variables.update(re.findall(r'\b[a-zA-Z]\b', processed_expr))
+                
+                return {
+                    'original_expression': expression,
+                    'processed_expression': processed_expr,
+                    'type': 'implicit',
+                    'variables': list(all_variables),
+                    'is_valid': True,
+                    'error': None,
+                    'primary_variable': 'x' if 'x' in all_variables else None,
+                    'parameters': [v for v in all_variables if v not in ['x', 'y', 't']],
+                    'equation_parts': {
+                        'left': left_side,
+                        'right': right_side
+                    }
+                }
+            
+            # For explicit expressions, use normal parsing
+            variables = self.parser.extract_variables(processed_expr)
+            is_valid, error_msg = self.parser.validate_expression(processed_expr)
+            
+            result = {
+                'original_expression': expression,
+                'processed_expression': processed_expr,
+                'type': expr_type,
+                'variables': list(variables),
+                'is_valid': is_valid,
+                'error': error_msg,
+                'primary_variable': 'x' if 'x' in variables else None,
+                'parameters': [v for v in variables if v not in ['x', 'y', 't']]
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                'original_expression': expression,
+                'processed_expression': expression,
+                'type': 'error',
+                'variables': [],
+                'is_valid': False,
+                'error': f'Parse error: {str(e)}',
+                'primary_variable': None,
+                'parameters': []
+            }
+    
+    def _parse_implicit_equation(self, equation: str) -> Dict[str, str]:
+        """Parse implicit equation into left and right parts"""
+        if '=' not in equation:
+            return {'left': equation, 'right': '0'}
+        
+        parts = equation.split('=', 1)
+        return {
+            'left': parts[0].strip(),
+            'right': parts[1].strip()
+        }
+    
+    def _parse_parametric_expression(self, expression: str) -> Dict[str, str]:
+        """Parse parametric expression components"""
+        # This is a simplified parser - in production would be more robust
+        return {
+            'raw': expression,
+            'note': 'Parametric parsing to be enhanced'
+        }
     
     def generate_graph_data(self, expression: str, x_range: Tuple[float, float] = (-5, 5), 
                           num_points: int = 1000, params: Dict[str, float] = None) -> Dict[str, Any]:

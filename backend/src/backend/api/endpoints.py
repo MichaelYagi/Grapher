@@ -2,11 +2,13 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 import time
 import asyncio
+import numpy as np
 from typing import List
 
 from backend.api.models import (
     ExpressionRequest, ParseRequest, BatchExpressionRequest, ParameterUpdateRequest,
-    ParseResponse, EvaluationResponse, BatchEvaluationResponse, ErrorResponse
+    ParametricRequest, ParseResponse, EvaluationResponse, BatchEvaluationResponse, ErrorResponse,
+    GraphDataResponse
 )
 from backend.core.math_engine import evaluator
 from backend.core.cache import get_cache, generate_cache_key
@@ -17,25 +19,21 @@ router = APIRouter()
 @router.post("/parse", response_model=ParseResponse)
 async def parse_expression(request: ParseRequest):
     """
-    Parse a mathematical expression and extract variables.
+    Parse a mathematical expression and extract variables with advanced classification.
     """
     try:
-        # Validate expression
-        is_valid, error_msg = evaluator.parser.validate_expression(request.expression)
-        
-        if not is_valid:
-            return ParseResponse(
-                is_valid=False,
-                variables=[],
-                error=error_msg
-            )
-        
-        # Extract variables
-        variables = list(evaluator.parser.extract_variables(request.expression))
+        # Parse and classify expression
+        classification = evaluator.parse_and_classify_expression(request.expression)
         
         return ParseResponse(
-            is_valid=True,
-            variables=variables
+            is_valid=classification['is_valid'],
+            variables=classification['variables'],
+            error=classification.get('error'),
+            expression_type=classification['type'],
+            processed_expression=classification.get('processed_expression'),
+            parameters=classification.get('parameters', []),
+            primary_variable=classification.get('primary_variable'),
+            classification=classification
         )
         
     except Exception as e:
@@ -44,25 +42,89 @@ async def parse_expression(request: ParseRequest):
 @router.post("/evaluate", response_model=EvaluationResponse)
 async def evaluate_expression(request: ExpressionRequest):
     """
-    Evaluate a mathematical expression and generate graph data.
+    Evaluate a mathematical expression (explicit, implicit, or parametric) and generate graph data.
     """
     start_time = time.time()
     
     try:
-        # Check cache first
-        cache_key = generate_cache_key(request.expression, request.variables, request.x_range)
-        cache = get_cache()
-        cached_result = await cache.get(cache_key) if cache else None
+        # Parse and classify expression
+        classification = evaluator.parse_and_classify_expression(request.expression)
         
-        if cached_result:
-            return cached_result
+        if not classification['is_valid']:
+            raise HTTPException(status_code=400, detail=classification.get('error', 'Invalid expression'))
         
-        # Generate graph data
-        graph_data = evaluator.generate_graph_data(
+        coordinates = []
+        valid_count = 0
+        x_range = request.x_range
+        y_range = (0.0, 1.0)
+        
+        if classification['type'] == 'implicit':
+            # Handle implicit equations (f(x, y) = 0)
+            x_coords, y_coords = evaluator.solve_implicit_equation(
+                request.expression,
+                x_range,
+                request.num_points,
+                request.variables
+            )
+            
+            # Create coordinate points for implicit equation
+            for x, y in zip(x_coords, y_coords):
+                if not np.isnan(y) and not np.isinf(y):
+                    coordinates.append({"x": float(x), "y": float(y)})
+                    valid_count += 1
+                    
+        elif classification['type'] == 'parametric':
+            # Handle parametric equations as explicit for now
+            x_values = np.linspace(x_range[0], x_range[1], request.num_points)
+            y_values = evaluator.evaluate_expression(
+                request.expression, 
+                x_values, 
+                request.variables
+            )
+            
+        else:  # explicit function
+            # Handle explicit functions y = f(x)
+            x_values = np.linspace(x_range[0], x_range[1], request.num_points)
+            y_values = evaluator.evaluate_expression(
+                request.expression, 
+                x_values, 
+                request.variables
+            )
+            
+            # Create coordinate points
+            for x, y in zip(x_values, y_values):
+                if not np.isnan(y) and not np.isinf(y):
+                    coordinates.append({"x": float(x), "y": float(y)})
+                    valid_count += 1
+        
+        # Calculate y range
+        if coordinates:
+            y_coords = [point["y"] for point in coordinates]
+            y_range = (min(y_coords), max(y_coords)) if y_coords else (0.0, 1.0)
+        
+        # Create response
+        end_time = time.time()
+        
+        return EvaluationResponse(
             expression=request.expression,
-            x_range=request.x_range,
-            num_points=request.num_points,
-            params=request.variables
+            graph_data=GraphDataResponse(
+                coordinates=coordinates,
+                total_points=request.num_points,
+                valid_points=valid_count,
+                x_range=x_range,
+                y_range=y_range
+            ),
+            evaluation_time_ms=(end_time - start_time) * 1000
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        end_time = time.time()
+        raise HTTPException(
+            status_code=400, 
+            detail=str(e),
+            headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
         )
         
         evaluation_time_ms = (time.time() - start_time) * 1000
@@ -227,6 +289,60 @@ async def update_parameters(request: ParameterUpdateRequest):
         
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Parameter update failed: {str(e)}")
+
+@router.post("/parametric", response_model=EvaluationResponse)
+async def evaluate_parametric(request: ParametricRequest):
+    """
+    Evaluate parametric equations x(t), y(t) and generate graph data.
+    """
+    start_time = time.time()
+    
+    try:
+        # Evaluate parametric equations
+        x_values, y_values = evaluator.evaluate_parametric(
+            request.x_expression,
+            request.y_expression,
+            request.t_range,
+            request.num_points,
+            request.variables
+        )
+        
+        # Create coordinate points
+        coordinates = []
+        valid_count = 0
+        for x, y in zip(x_values, y_values):
+            if not np.isnan(x) and not np.isnan(y) and not np.isinf(x) and not np.isinf(y):
+                coordinates.append({"x": float(x), "y": float(y)})
+                valid_count += 1
+        
+        # Calculate ranges
+        x_coords = [point["x"] for point in coordinates]
+        y_coords = [point["y"] for point in coordinates]
+        x_range = (min(x_coords), max(x_coords)) if x_coords else (0.0, 1.0)
+        y_range = (min(y_coords), max(y_coords)) if y_coords else (0.0, 1.0)
+        
+        # Create response
+        end_time = time.time()
+        
+        return EvaluationResponse(
+            expression=f"parametric: x={request.x_expression}, y={request.y_expression}",
+            graph_data=GraphDataResponse(
+                coordinates=coordinates,
+                total_points=request.num_points,
+                valid_points=valid_count,
+                x_range=x_range,
+                y_range=y_range
+            ),
+            evaluation_time_ms=(end_time - start_time) * 1000
+        )
+        
+    except Exception as e:
+        end_time = time.time()
+        raise HTTPException(
+            status_code=400, 
+            detail=str(e),
+            headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
+        )
 
 @router.get("/health")
 async def health_check():

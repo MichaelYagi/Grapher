@@ -16,6 +16,7 @@ class ApiClient {
 
         if (data && (method === 'POST' || method === 'PUT')) {
             config.body = JSON.stringify(data);
+            console.log('API Request:', endpoint, JSON.stringify(data, null, 2)); // Debug log
         }
 
         try {
@@ -23,11 +24,11 @@ class ApiClient {
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                throw new ApiError(
-                    errorData.detail || errorData.error || `HTTP ${response.status}`,
-                    response.status,
-                    errorData.error_code
-                );
+                console.error('API Error Details:', JSON.stringify(errorData, null, 2)); // Debug log
+                const errorMessage = Array.isArray(errorData.detail) 
+                    ? errorData.detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join('; ')
+                    : errorData.detail || errorData.error || `HTTP ${response.status}`;
+                throw new ApiError(errorMessage, response.status, errorData.error_code);
             }
 
             return await response.json();
@@ -74,6 +75,20 @@ class ApiClient {
 
     async healthCheck() {
         return this.makeRequest('/api/health');
+    }
+
+    async evaluateParametric(xExpression, yExpression, variables = {}, tRange = [0, 2*Math.PI], numPoints = 1000) {
+        return this.makeRequest('/api/parametric', 'POST', {
+            x_expression: xExpression,
+            y_expression: yExpression,
+            variables: variables,
+            t_range: tRange,
+            num_points: numPoints
+        });
+    }
+
+    async parseExpression(expression) {
+        return this.makeRequest('/api/parse', 'POST', { expression });
     }
 
     // Debounced parameter update for real-time updates

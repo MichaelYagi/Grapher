@@ -80,42 +80,75 @@ class GrapherApp {
         }, 300);
     }
 
-    async validateAndParseExpression(expression) {
-        const inputElement = document.getElementById('expression');
-        const validationMessage = document.getElementById('validation-message');
-        const plotButton = document.getElementById('plot-btn');
-
-        if (!expression.trim()) {
-            this.setValidationState('empty', 'Enter a mathematical expression');
-            return;
-        }
-
+async validateAndParseExpression(expression) {
         try {
-            if (this.isBackendAvailable) {
-                // Use backend for validation
-                const result = await apiClient.parseExpression(expression);
-                
-                if (result.is_valid) {
-                    this.setValidationState('valid', 'Valid expression');
-                    this.currentExpression = expression;
-                    this.currentVariables = result.variables;
-                    this.parameterController.setParameters(result.variables, expression);
-                    plotButton.disabled = false;
-                } else {
-                    this.setValidationState('invalid', result.error || 'Invalid expression');
-                    this.parameterController.clearParameters();
-                    plotButton.disabled = true;
-                }
+            const result = await apiClient.parseExpression(expression);
+            
+            if (result.is_valid) {
+                this.currentExpression = expression;
+                this.currentVariables = result.variables;
+                this.currentExpressionType = result.expression_type || 'explicit';
+                this.currentParameters = result.parameters || {};
+                this.showValidationSuccess();
+                this.updateParameterControls();
+                this.updateExpressionTypeDisplay(result);
             } else {
-                // Fallback to simple client-side validation
-                this.validateExpressionLocally(expression);
+                this.showValidationError(result.error);
             }
+            
+            return result;
+            
         } catch (error) {
-            console.error('Expression validation error:', error);
-            this.setValidationState('invalid', `Validation failed: ${error.message}`);
-            plotButton.disabled = true;
+            this.showValidationError(error.message);
+            return { is_valid: false, variables: [], error: error.message };
         }
     }
+
+    updateExpressionTypeDisplay(parseResult) {
+        const typeDisplay = document.createElement('div');
+        typeDisplay.className = 'expression-type-info';
+        typeDisplay.style.cssText = `
+            margin-top: 5px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            background: ${getTypeColor(parseResult.expression_type)}20;
+            color: ${getTypeColor(parseResult.expression_type)};
+            border: 1px solid ${getTypeColor(parseResult.expression_type)}40;
+        `;
+        
+        const typeLabels = {
+            'explicit': 'Function: y = f(x)',
+            'implicit': 'Implicit Equation: f(x, y) = 0',
+            'parametric': 'Parametric: (x(t), y(t))'
+        };
+        
+        typeDisplay.textContent = typeLabels[parseResult.expression_type] || 'Mathematical Expression';
+        
+        // Remove existing type display
+        const existing = document.querySelector('.expression-type-info');
+        if (existing) {
+            existing.remove();
+        }
+        
+        // Add new type display
+        const inputGroup = document.querySelector('.input-group');
+        inputGroup.appendChild(typeDisplay);
+    }
+
+    updateParameterControls() {
+        // Clear existing parameter controls
+        this.parameterController.clearParameters();
+        
+        // Add controls for parameters (variables that are not x, y, or t)
+        const parameters = this.currentVariables.filter(v => !['x', 'y', 't'].includes(v));
+        
+        if (parameters.length > 0) {
+            this.parameterController.setParameters(parameters);
+        }
+    }
+
+        
 
     validateExpressionLocally(expression) {
         // Simple client-side validation as fallback
@@ -159,28 +192,32 @@ class GrapherApp {
         }
     }
 
+showValidationSuccess(message = 'Valid expression') {
+        this.setValidationState('valid', message);
+    }
+    
+    showValidationError(message = 'Invalid expression') {
+        this.setValidationState('invalid', message);
+    }
+
     setValidationState(state, message) {
         const inputElement = document.getElementById('expression');
         const validationMessage = document.getElementById('validation-message');
-
+        
+        // Remove all validation classes
         inputElement.classList.remove('valid', 'invalid');
         validationMessage.classList.remove('success', 'error');
-        validationMessage.innerHTML = '';
-
-        switch (state) {
-            case 'valid':
-                inputElement.classList.add('valid');
-                validationMessage.classList.add('success');
-                validationMessage.textContent = message;
-                break;
-            case 'invalid':
-                inputElement.classList.add('invalid');
-                validationMessage.classList.add('error');
-                validationMessage.textContent = message;
-                break;
-            case 'empty':
-                validationMessage.innerHTML = '';
-                break;
+        
+        if (state === 'valid') {
+            inputElement.classList.add('valid');
+            validationMessage.classList.add('success');
+            validationMessage.textContent = message || 'Valid expression';
+        } else if (state === 'invalid') {
+            inputElement.classList.add('invalid');
+            validationMessage.classList.add('error');
+            validationMessage.textContent = message || 'Invalid expression';
+        } else {
+            validationMessage.textContent = '';
         }
     }
 
@@ -213,10 +250,30 @@ class GrapherApp {
     }
 
     async plotWithBackend() {
+        // Ensure we have valid parameters (object, not array)
+        console.log('Current parameters before fix:', this.currentParameters, typeof this.currentParameters, Array.isArray(this.currentParameters));
+        
+        let parameters = {};
+        if (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) {
+            parameters = this.currentParameters;
+        } else {
+            console.warn('Parameters was not a valid object, using empty object');
+        }
+        
+        const xRange = [-10, 10]; // Use the new 20x20 viewport
+        
+        console.log('Plotting with:', {
+            expression: this.currentExpression,
+            parameters: parameters,
+            parametersType: typeof parameters,
+            parametersIsArray: Array.isArray(parameters),
+            xRange: xRange
+        });
+        
         const result = await apiClient.evaluateExpression(
             this.currentExpression,
-            this.currentParameters,
-            [-5, 5], // 10x10 viewport
+            parameters,
+            xRange,
             1000
         );
 
@@ -372,6 +429,17 @@ class GrapherApp {
 document.addEventListener('DOMContentLoaded', () => {
     window.grapherApp = new GrapherApp();
 });
+
+// Helper function for expression type colors
+function getTypeColor(type) {
+    const colors = {
+        'explicit': '#8b5cf6',      // Purple
+        'implicit': '#10b981',      // Green  
+        'parametric': '#f59e0b',    // Orange
+        'error': '#ef4444'          // Red
+    };
+    return colors[type] || '#6b7280';  // Gray default
+}
 
 // Global error handling
 window.addEventListener('error', (event) => {

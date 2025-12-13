@@ -42,11 +42,11 @@ class ParameterController {
             return;
         }
 
-        // Filter out 'x' as it's the primary graphing variable
-        const filteredVariables = variables.filter(v => v !== 'x');
+        // Filter out primary variables (x, y, t) as they are handled differently
+        const filteredVariables = variables.filter(v => !['x', 'y', 't'].includes(v));
 
         if (filteredVariables.length === 0) {
-            this.container.innerHTML = '<p style="color: #6c757d; font-style: italic;">No adjustable parameters (x is the graphing variable)</p>';
+            this.container.innerHTML = '<p style="color: #6c757d; font-style: italic;">No adjustable parameters</p>';
             return;
         }
 
