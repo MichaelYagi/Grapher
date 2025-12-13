@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grapher - Mathematical Function Visualizer</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 600px;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: #f8f9fa;
+            padding: 30px;
+            border-right: 1px solid #e9ecef;
+        }
+
+        .graph-container {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .expression-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            transition: border-color 0.3s ease;
+        }
+
+        .expression-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .expression-input.valid {
+            border-color: #28a745;
+        }
+
+        .expression-input.invalid {
+            border-color: #dc3545;
+        }
+
+        .validation-message {
+            margin-top: 8px;
+            font-size: 14px;
+            padding: 6px 10px;
+            border-radius: 6px;
+        }
+
+        .validation-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .validation-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .parameters-section {
+            margin-top: 30px;
+        }
+
+        .parameter-control {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .parameter-control h4 {
+            margin-bottom: 12px;
+            color: #495057;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .parameter-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            background: #e9ecef;
+            outline: none;
+            transition: background 0.3s;
+        }
+
+        .parameter-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .parameter-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .parameter-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        #graph {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .graph-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .graph-controls button {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .graph-controls button:hover {
+            background: #5a6268;
+        }
+
+        .loading {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #f5c6cb;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Grapher</h1>
+            <p>Mathematical Function Visualizer</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="input-group">
+                    <label for="expression">Mathematical Expression</label>
+                    <input 
+                        type="text" 
+                        id="expression" 
+                        class="expression-input" 
+                        placeholder="e.g., x^2 + 2*x + 1"
+                        value="x^2"
+                    >
+                    <div id="validation-message"></div>
+                </div>
+                
+                <div class="input-group">
+                    <button id="plot-btn" class="btn">Plot Function</button>
+                </div>
+                
+                <div class="parameters-section">
+                    <h3>Parameters</h3>
+                    <div id="parameters-container">
+                        <!-- Dynamic parameter controls will be added here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="graph-container">
+                <div class="graph-controls">
+                    <button id="reset-view-btn">Reset View</button>
+                    <button id="toggle-grid-btn">Toggle Grid</button>
+                </div>
+                <div id="error-container"></div>
+                <svg id="graph" width="600" height="600"></svg>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script src="js/graph-renderer.js"></script>
+    <script src="js/param-controller.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
