@@ -67,26 +67,32 @@ async def evaluate_expression(request: ExpressionRequest):
                 request.variables
             )
             
-            # Create coordinate points for implicit equation
+# Create coordinate points for implicit equation
             for x, y in zip(x_coords, y_coords):
                 if not np.isnan(y) and not np.isinf(y):
                     coordinates.append({"x": float(x), "y": float(y)})
                     valid_count += 1
-                    
+                     
         elif classification['type'] == 'parametric':
             # Handle parametric equations as explicit for now
             x_values = np.linspace(x_range[0], x_range[1], request.num_points)
             y_values = evaluator.evaluate_expression(
-                request.expression, 
+                classification.get('processed_expression', request.expression), 
                 x_values, 
                 request.variables
             )
             
+            # Create coordinate points
+            for x, y in zip(x_values, y_values):
+                if not np.isnan(y) and not np.isinf(y):
+                    coordinates.append({"x": float(x), "y": float(y)})
+                    valid_count += 1
+                    
         else:  # explicit function
             # Handle explicit functions y = f(x)
             x_values = np.linspace(x_range[0], x_range[1], request.num_points)
             y_values = evaluator.evaluate_expression(
-                request.expression, 
+                classification.get('processed_expression', request.expression), 
                 x_values, 
                 request.variables
             )

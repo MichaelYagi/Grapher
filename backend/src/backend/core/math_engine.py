@@ -120,7 +120,13 @@ class ExpressionParser:
         """Convert LaTeX expressions to ASCII format"""
         result = expression
         for latex_pattern, ascii_replacement in self.latex_mapping.items():
+            print("latex_pattern")
+            print(latex_pattern)
+            print("ascii_replacement")
+            print(ascii_replacement)
             result = re.sub(latex_pattern, ascii_replacement, result)
+        print("latex result")
+        print(result)
         return result
     
     def convert_html_entities(self, expression: str) -> str:
@@ -128,14 +134,81 @@ class ExpressionParser:
         result = expression
         for html_entity, ascii_replacement in self.html_entity_mapping.items():
             result = result.replace(html_entity, ascii_replacement)
+        print("html result")
+        print(result)
+        return result
+    
+    def add_implicit_multiplication(self, expression: str) -> str:
+        """Add explicit multiplication operators for implicit multiplication cases"""
+        result = expression
+        
+        # Define mathematical function names that should NOT be broken up
+        function_names = [
+            'sin', 'cos', 'tan', 'log', 'exp', 'sqrt', 'abs', 'asin', 'acos', 'atan',
+            'sinh', 'cosh', 'tanh', 'log10', 'log2', 'floor', 'ceil', 'round', 'sign'
+        ]
+        
+# Step 1: Handle number-function cases (highest priority)
+        # 2sin -> 2*sin, 3cos -> 3*cos (FIXES YOUR ISSUE)
+        for func in function_names:
+            result = re.sub(rf'(\d){func}(?!\w)', rf'\1*{func}', result)
+        
+# Step 3: Handle basic cases (no function names to worry about now)
+        # 2x -> 2*x
+        result = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', result)
+        
+        # 2(x+1) -> 2*(x+1)
+        result = re.sub(r'(\d)\s*\(', r'\1*(', result)
+        
+        # x(y+1) -> x*(y+1), but NOT sin(x)
+        # First protect function calls with parentheses
+        for func in function_names:
+            result = re.sub(rf'\b{func}\s*\(', f'FUNC_{func}_CALL_', result)
+        
+        result = re.sub(r'([a-zA-Z])\s*\(', r'\1*(', result)
+        
+        # Restore function calls
+        for func in function_names:
+            result = result.replace(f'FUNC_{func}_CALL_', f'{func}(')
+        
+        # Step 2: Handle variable-function cases - but NOT if followed by parentheses
+        # xsin -> x*sin, but NOT sin(x)
+        for func in function_names:
+            result = re.sub(rf'\b{func}(?!\w)(?!\()', f'TEMP_{func}', result)
+        
+        for func in function_names:
+            result = re.sub(rf'([a-zA-Z])TEMP_{func}', rf'\1*{func}', result)
+        
+        for func in function_names:
+            result = result.replace(f'TEMP_{func}', func)
+        
+        # (x+1)2 -> (x+1)*2
+        result = re.sub(r'\)(\d)', r')*\1', result)
+        
+        # (x+1)y -> (x+1)*y
+        result = re.sub(r'\)([a-zA-Z])', r')*\1', result)
+        
+        # (x+1)(y+2) -> (x+1)*(y+2)
+        result = re.sub(r'\)\s*\(', r')*(', result)
+        
+        # Step 4: Handle variable-variable cases (apply repeatedly for xyz -> x*y*z)
+        changed = True
+        while changed:
+            old_result = result
+            # Only apply to consecutive single letters to avoid function names
+            result = re.sub(r'\b([a-zA-Z])\b([a-zA-Z])\b', r'\1*\2', result)
+            changed = (old_result != result)
+        
         return result
     
     def preprocess_expression(self, expression: str) -> str:
-        """Preprocess expression by converting LaTeX and HTML entities"""
+        """Preprocess expression by converting LaTeX and HTML entities and adding implicit multiplication"""
         # Convert HTML entities first
         expression = self.convert_html_entities(expression)
         # Then convert LaTeX
         expression = self.convert_latex_to_ascii(expression)
+        # Finally add implicit multiplication
+        expression = self.add_implicit_multiplication(expression)
         return expression
     
     def validate_expression(self, expression: str) -> Tuple[bool, Optional[str]]:
@@ -377,11 +450,20 @@ class ExpressionEvaluator:
         Parse expression and classify its type with detailed information
         """
         try:
+            print("expression")
+            print(expression)
+
             # Preprocess expression
             processed_expr = self.parser.preprocess_expression(expression)
-            
+
+            print("processed_expr")
+            print(processed_expr)
+
             # Determine expression type
             expr_type = self.parser.parse_expression_type(processed_expr)
+
+            print("expr_type")
+            print(expr_type)
             
             # For implicit equations, handle directly without AST parsing
             if expr_type == 'implicit':
@@ -489,13 +571,16 @@ class ExpressionEvaluator:
     
     def generate_graph_data(self, expression: str, x_range: Tuple[float, float] = (-5, 5), 
                           num_points: int = 1000, params: Dict[str, float] = None) -> Dict[str, Any]:
-        """Generate coordinate data for graphing an expression"""
+        """Generate coordinate data for graphing an expression (with preprocessing)"""
         try:
+            # Preprocess the expression to handle implicit multiplication
+            processed_expression = self.parser.preprocess_expression(expression)
+            
             # Generate x coordinates
             x_values = np.linspace(x_range[0], x_range[1], num_points)
             
             # Evaluate expression
-            y_values = self.evaluate_expression(expression, x_values, params)
+            y_values = self.evaluate_expression(processed_expression, x_values, params)
             
             # Filter out invalid points (NaN, infinite)
             valid_mask = np.isfinite(y_values)
