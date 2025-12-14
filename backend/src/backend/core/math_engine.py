@@ -120,13 +120,7 @@ class ExpressionParser:
         """Convert LaTeX expressions to ASCII format"""
         result = expression
         for latex_pattern, ascii_replacement in self.latex_mapping.items():
-            print("latex_pattern")
-            print(latex_pattern)
-            print("ascii_replacement")
-            print(ascii_replacement)
             result = re.sub(latex_pattern, ascii_replacement, result)
-        print("latex result")
-        print(result)
         return result
     
     def convert_html_entities(self, expression: str) -> str:
@@ -134,8 +128,6 @@ class ExpressionParser:
         result = expression
         for html_entity, ascii_replacement in self.html_entity_mapping.items():
             result = result.replace(html_entity, ascii_replacement)
-        print("html result")
-        print(result)
         return result
     
     def add_implicit_multiplication(self, expression: str) -> str:
