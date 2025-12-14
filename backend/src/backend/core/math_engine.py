@@ -183,7 +183,10 @@ class ExpressionParser:
         # Step 5: Handle basic cases
         # 2x -> 2*x
         result = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', result)
-        
+
+        # x2 -> x*2, y7 -> y*7, etc.
+        result = re.sub(r'([a-zA-Z])(\d)', r'\1*\2', result)
+
         # 2(x+1) -> 2*(x+1)
         result = re.sub(r'(\d)\s*\(', r'\1*(', result)
         
