@@ -31,6 +31,8 @@ constructor() {
         const plotButton = document.getElementById('plot-btn');
         const resetViewButton = document.getElementById('reset-view-btn');
         const toggleGridButton = document.getElementById('toggle-grid-btn');
+        const downloadPngButton = document.getElementById('download-png-btn');
+        const downloadSvgButton = document.getElementById('download-svg-btn');
 
         // Expression input events
         // expressionInput.addEventListener('input', (e) => {
@@ -56,6 +58,15 @@ constructor() {
 
         toggleGridButton.addEventListener('click', () => {
             this.graphRenderer.toggleGrid();
+        });
+
+        // Download buttons
+        downloadPngButton.addEventListener('click', () => {
+            this.graphRenderer.downloadGraph('png');
+        });
+
+        downloadSvgButton.addEventListener('click', () => {
+            this.graphRenderer.downloadGraph('svg');
         });
 
 

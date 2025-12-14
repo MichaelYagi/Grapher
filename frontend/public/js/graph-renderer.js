@@ -397,4 +397,81 @@ class GraphRenderer {
             // For now, just recreate the chart structure
         });
     }
+
+    downloadGraph(format = 'png', filename = null) {
+        const svgElement = document.getElementById(this.svgId);
+        
+        if (!filename) {
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const expression = this.functions.length > 0 ? this.functions[0].expression.replace(/[^a-zA-Z0-9]/g, '_') : 'graph';
+            filename = `grapher_${expression}_${timestamp}`;
+        }
+
+        if (format === 'svg') {
+            this.downloadSVG(svgElement, filename);
+        } else {
+            this.downloadAsImage(svgElement, filename, format);
+        }
+    }
+
+    downloadSVG(svgElement, filename) {
+        // Clone the SVG to avoid modifying the original
+        const svgClone = svgElement.cloneNode(true);
+        
+        // Get the SVG content as string
+        const svgData = new XMLSerializer().serializeToString(svgClone);
+        
+        // Create a blob and download link
+        const blob = new Blob([svgData], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+        
+        const downloadLink = document.createElement('a');
+        downloadLink.href = url;
+        downloadLink.download = `${filename}.svg`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+    }
+
+    downloadAsImage(svgElement, filename, format = 'png') {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size to match SVG
+        canvas.width = this.options.width;
+        canvas.height = this.options.height;
+        
+        // Get SVG data
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const img = new Image();
+        
+        img.onload = () => {
+            // Fill white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the image
+            ctx.drawImage(img, 0, 0);
+            
+            // Convert to blob and download
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = url;
+                downloadLink.download = `${filename}.${format}`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(url);
+            }, `image/${format}`);
+        };
+        
+        // Set the image source with proper encoding
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const svgUrl = URL.createObjectURL(svgBlob);
+        img.src = svgUrl;
+    }
 }
