@@ -45,21 +45,11 @@ A modern, interactive web application for mathematical function visualization fe
    pip install -r requirements.txt
    ```
 
-3. **Start the backend service**:
+3. **Start the server**:
    ```bash
    cd src
-   python main.py
+   python start_server.py
    ```
-   The backend will start on `http://localhost:8000`
-
-4. **Start the frontend**:
-   ```bash
-   cd ../frontend/public
-   python -m http.server 3000
-   # Or use any static file server
-   ```
-
-5. **Open the application**:
    Navigate to `http://localhost:3000` in your browser
 
 ## 📁 Project Structure
