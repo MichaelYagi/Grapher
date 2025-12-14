@@ -398,6 +398,21 @@ class ExpressionEvaluator:
             
             # Simple pattern matching for common equations
             import re
+
+            # x=5 or y=-6
+            simple_match = re.search(r'([xy])\s*=\s*(-?\d+(?:\.\d+)?)', equation)
+            if simple_match:
+                if simple_match.group(1) == 'x':
+                    x_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
+                    y_coords = [10.0, -10.0]
+                elif simple_match.group(1) == 'y':
+                    x_coords = [10.0, -10.0]
+                    y_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
+                else:
+                    x_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
+                    y_coords = [10.0, -10.0]
+
+                return x_coords, y_coords
             
             # Circle: x^2 + y^2 = r^2
             if re.search(r'x\^2\s*\+\s*y\^2\s*=', equation):
