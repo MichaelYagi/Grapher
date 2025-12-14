@@ -385,9 +385,136 @@ async plotFunction() {
 
 
 
+    normalizeExpression(expression) {
+        // Normalize expression by removing spaces and converting to lowercase
+        let normalized = expression.toLowerCase().replace(/\s+/g, '');
+        
+        // Replace common mathematical operators and constants first
+        normalized = normalized
+            .replace(/\^/g, '**') // Convert ^ to ** for power
+            .replace(/pi/g, 'math.pi')
+            .replace(/e(?![a-z])/g, 'math.e'); // Only replace standalone 'e'
+        
+        // Handle function calls first to protect them from multiplication logic
+        const functionData = this.preserveFunctionCalls(normalized);
+        normalized = functionData.expr;
+        
+        // Add explicit multiplication for implied multiplication (e.g., "2x" -> "2*x")
+        normalized = this.addExplicitMultiplication(normalized);
+        
+        // Restore function calls
+        normalized = this.restoreFunctionCalls(normalized, functionData.placeholders);
+        
+        // Sort multiplication terms
+        normalized = this.sortMultiplicationTerms(normalized);
+        
+        return normalized;
+    }
+
+    preserveFunctionCalls(expr) {
+        // Replace function calls with placeholders to protect them
+        const placeholders = [];
+        let placeholderIndex = 0;
+        
+        const processedExpr = expr.replace(/(sin|cos|tan|sqrt|log|exp)\s*\([^)]+\)/g, (match) => {
+            const placeholder = `__FUNC_${placeholderIndex}__`;
+            placeholders[placeholderIndex] = match;
+            placeholderIndex++;
+            return placeholder;
+        });
+        
+        return { expr: processedExpr, placeholders };
+    }
+
+    restoreFunctionCalls(expr, placeholders) {
+        // Restore function calls from placeholders
+        if (!placeholders) return expr;
+        
+        placeholders.forEach((funcCall, index) => {
+            const placeholder = `__FUNC_${index}__`;
+            // Simple string replacement since placeholders are unique
+            expr = expr.split(placeholder).join(funcCall);
+        });
+        
+        return expr;
+    }
+
+    restoreFunctionCalls(expr) {
+        // Restore function calls from placeholders
+        if (!this.functionPlaceholders) return expr;
+        
+        this.functionPlaceholders.forEach((funcCall, index) => {
+            const placeholder = `__FUNC_${index}__`;
+            // Simple string replacement since placeholders are unique
+            expr = expr.split(placeholder).join(funcCall);
+        });
+        
+        return expr;
+    }
+
+    addExplicitMultiplication(expr) {
+        // Add explicit multiplication for cases like "2x", "x2", etc.
+        // Skip placeholders (function calls)
+        return expr
+            // Number followed by variable: "2x" -> "2*x"
+            .replace(/(\d)([a-z])/g, '$1*$2')
+            // Variable followed by number: "x2" -> "x*2"
+            .replace(/([a-z])(\d)/g, '$1*$2')
+            // Variable followed by function (but not placeholders): "xsin" -> "x*sin"
+            .replace(/([a-z])(sin|cos|tan|sqrt|log|exp)(?!__)/g, '$1*$2')
+            // Variable followed by parenthesis (but not placeholders): "x(" -> "x*("
+            .replace(/([a-z])(?!\w*__\s*)\(/g, '$1*(')
+            // Parenthesis followed by variable: ")x" -> ")*x"
+            .replace(/\)([a-z])/g, ')*$1')
+            // Number followed by parenthesis: "2(" -> "2*("
+            .replace(/(\d)\(/g, '$1*(')
+            // Parenthesis followed by number: ")2" -> ")*2"
+            .replace(/\)(\d)/g, ')*$1');
+    }
+
+    sortMultiplicationTerms(expr) {
+        // Sort multiplication terms to handle commutative property
+        // This is a simplified approach for basic cases
+        
+        const sortMultiplicationChain = (chain) => {
+            const terms = chain.split('*');
+            const sorted = terms.sort((a, b) => {
+                const aIsNumber = /^\d+(\.\d+)?$/.test(a);
+                const bIsNumber = /^\d+(\.\d+)?$/.test(b);
+                const aIsConstant = /^(math\.pi|math\.e)$/.test(a);
+                const bIsConstant = /^(math\.pi|math\.e)$/.test(b);
+                
+                // Order: numbers, constants, variables, functions
+                if (aIsNumber && !bIsNumber) return -1;
+                if (!aIsNumber && bIsNumber) return 1;
+                if (aIsConstant && !bIsConstant) return -1;
+                if (!aIsConstant && bIsConstant) return 1;
+                if (a.startsWith('math.') && !b.startsWith('math.')) return 1;
+                if (!a.startsWith('math.') && b.startsWith('math.')) return -1;
+                return a.localeCompare(b);
+            });
+            return sorted.join('*');
+        };
+
+        // Find and sort multiplication chains
+        return expr.replace(/([a-z0-9.]+(?:\*\*[0-9.]+)?|\([^)]+\)(?:\*\*[0-9.]+)?)(?:\*([a-z0-9.]+(?:\*\*[0-9.]+)?|\([^)]+\)(?:\*\*[0-9.]+)?))*/g, sortMultiplicationChain);
+    }
+
+    areExpressionsEquivalent(expr1, expr2) {
+        const norm1 = this.normalizeExpression(expr1);
+        const norm2 = this.normalizeExpression(expr2);
+        return norm1 === norm2;
+    }
+
     async addPlot(expression) {
-        // Check if plot already exists
+        // Check if plot already exists (exact match)
         if (this.plots.some(plot => plot.expression === expression)) {
+            this.showError('This expression is already plotted');
+            return;
+        }
+
+        // Check for equivalent expressions
+        if (this.plots.some(plot => this.areExpressionsEquivalent(plot.expression, expression))) {
             this.showError('This expression is already plotted');
             return;
         }
