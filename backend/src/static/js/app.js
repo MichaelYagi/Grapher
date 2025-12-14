@@ -29,7 +29,8 @@ class GrapherApp {
         // Initialize with default expression
         this.validateAndParseExpression(document.getElementById('expression').value);
         
-
+        // Initial render of plot list
+        this.renderPlotList();
         
         console.log('Grapher app initialized');
     }
@@ -40,6 +41,9 @@ class GrapherApp {
         const toggleGridButton = document.getElementById('toggle-grid-btn');
         const downloadPngButton = document.getElementById('download-png-btn');
         const downloadSvgButton = document.getElementById('download-svg-btn');
+        const deleteAllButton = document.getElementById('delete-all-btn');
+        const hideAllButton = document.getElementById('hide-all-btn');
+        const showAllButton = document.getElementById('show-all-btn');
 
         // Expression input events
         // expressionInput.addEventListener('input', (e) => {
@@ -70,6 +74,19 @@ class GrapherApp {
 
         downloadSvgButton.addEventListener('click', () => {
             this.graphRenderer.downloadGraph('svg');
+        });
+
+        // Plots control buttons
+        deleteAllButton.addEventListener('click', () => {
+            this.deleteAllPlots();
+        });
+
+        hideAllButton.addEventListener('click', () => {
+            this.hideAllPlots();
+        });
+
+        showAllButton.addEventListener('click', () => {
+            this.showAllPlots();
         });
 
 
@@ -582,12 +599,82 @@ async plotFunction() {
         }
     }
 
+    deleteAllPlots() {
+        if (this.plots.length === 0) {
+            this.showError('No plots to delete');
+            return;
+        }
+
+        if (confirm(`Are you sure you want to delete all ${this.plots.length} plotted function(s)?`)) {
+            this.plots = [];
+            this.renderPlotList();
+            this.updateGraph();
+            this.showSuccess('All plots deleted');
+        }
+    }
+
+    hideAllPlots() {
+        if (this.plots.length === 0) {
+            this.showError('No plots to hide');
+            return;
+        }
+
+        let hiddenCount = 0;
+        this.plots.forEach(plot => {
+            if (plot.visible) {
+                plot.visible = false;
+                hiddenCount++;
+            }
+        });
+
+        if (hiddenCount > 0) {
+            this.renderPlotList();
+            this.updateGraph();
+            this.showSuccess(`${hiddenCount} plot(s) hidden`);
+        } else {
+            this.showError('All plots are already hidden');
+        }
+    }
+
+    showAllPlots() {
+        if (this.plots.length === 0) {
+            this.showError('No plots to show');
+            return;
+        }
+
+        let shownCount = 0;
+        this.plots.forEach(plot => {
+            if (!plot.visible) {
+                plot.visible = true;
+                shownCount++;
+            }
+        });
+
+        if (shownCount > 0) {
+            this.renderPlotList();
+            this.updateGraph();
+            this.showSuccess(`${shownCount} plot(s) shown`);
+        } else {
+            this.showError('All plots are already visible');
+        }
+    }
+
     renderPlotList() {
         const container = document.getElementById('plots-container');
+        const controlsContainer = document.querySelector('.plots-controls');
         
         if (this.plots.length === 0) {
             container.innerHTML = '<div class="empty-plots">No functions plotted yet</div>';
+            // Hide control buttons when no plots
+            if (controlsContainer) {
+                controlsContainer.style.display = 'none';
+            }
             return;
+        }
+
+        // Show control buttons when there are plots
+        if (controlsContainer) {
+            controlsContainer.style.display = 'flex';
         }
 
         container.innerHTML = this.plots.map(plot => {
