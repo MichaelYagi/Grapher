@@ -7,7 +7,7 @@ class GraphRenderer {
         this.options = {
             width: 600,
             height: 600,
-            margin: { top: 20, right: 20, bottom: 40, left: 50 },
+            margin: { top: 10, right: 14, bottom: 10, left: 10 },
             xRange: [-10, 10],
             yRange: [-10, 10],
             gridEnabled: true,
@@ -47,7 +47,7 @@ class GraphRenderer {
             .attr('width', this.options.width)
             .attr('height', this.options.height)
             .append('g')
-            .attr('transform', `translate(${this.options.margin.left},${this.options.margin.top})`);
+            .attr('transform', `translate(${this.options.margin.left},${this.options.margin.top})`); // 35,30
 
         // Create scales with equal aspect ratio
         this.xScale = d3.scaleLinear()
@@ -180,21 +180,19 @@ renderGrid() {
         this.mainGroup
             .append('text')
             .attr('class', 'x-label')
-            .attr('x', this.innerWidth / 2)
+            .attr('x', (this.innerWidth / 2) + 5)
             .attr('y', this.innerHeight - 5)
             .style('text-anchor', 'top')
-            .style('fill', this.options.axisColors.x)
-            .style('font-weight', 'bold')
+            .style('fill', this.options.axisColors.y)
             .text('y');
 
         this.mainGroup
             .append('text')
             .attr('class', 'y-label')
             .attr('x', 5)
-            .attr('y', this.innerHeight / 2)
+            .attr('y', (this.innerHeight / 2) - 5)
             .style('text-anchor', 'start')
-            .style('fill', this.options.axisColors.y)
-            .style('font-weight', 'bold')
+            .style('fill', this.options.axisColors.x)
             .text('x');
     }
 
