@@ -84,8 +84,8 @@ this.renderGrid();
         this.renderAxes();
     }
 
-    updateRange(xRange, yRange) {
-        // Update the options with new ranges
+updateRange(xRange, yRange) {
+        // Update options with new ranges
         this.options.xRange = xRange;
         this.options.yRange = yRange;
 
@@ -98,9 +98,32 @@ this.renderGrid();
             .domain(yRange)
             .range([this.innerHeight, 0]); // Inverted for SVG coordinates
 
+        // Update all existing plot paths with new scales
+        this.updatePlotPaths();
+
         // Re-render grid and axes
         this.renderGrid();
         this.renderAxes();
+    }
+
+    updatePlotPaths() {
+        // Update all existing plot paths to use new scales
+        this.functions.forEach((func, index) => {
+            if (func.element && func.coordinates) {
+                // Create line generator with updated scales
+                const line = d3.line()
+                    .x(d => this.xScale(d.x))
+                    .y(d => this.yScale(d.y))
+                    .defined(d => !isNaN(d.y) && isFinite(d.y));
+
+                // Update the path with new scale transformation
+                func.element
+                    .datum(func.coordinates)
+                    .transition()
+                    .duration(300)
+                    .attr('d', line);
+            }
+        });
     }
 
 renderGrid() {
@@ -232,8 +255,8 @@ renderGrid() {
             .y(d => this.yScale(d.y))
             .defined(d => !isNaN(d.y) && isFinite(d.y));
 
-        // Add the function to our tracking array
-        this.functions.push({ expression, color, element: null });
+// Add the function to our tracking array
+        this.functions.push({ expression, color, element: null, coordinates: coordinates });
 
         // Draw the function curve
         const path = this.functionsGroup
