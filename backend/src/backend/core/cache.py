@@ -52,7 +52,7 @@ def generate_cache_key(expression: str, params: Dict[str, float] = None, x_range
     key_data = {
         'expression': expression,
         'params': params or {},
-        'x_range': x_range or (-5, 5)
+        'x_range': x_range or (-30, 30)
     }
     key_str = json.dumps(key_data, sort_keys=True)
     return hashlib.md5(key_str.encode()).hexdigest()

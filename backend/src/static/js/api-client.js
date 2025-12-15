@@ -47,7 +47,7 @@ class ApiClient {
         return this.makeRequest('/api/parse', 'POST', { expression });
     }
 
-    async evaluateExpression(expression, variables = {}, xRange = [-10, 10], numPoints = 1000) {
+    async evaluateExpression(expression, variables = {}, xRange = [-30, 30], numPoints = 1000) {
         return this.makeRequest('/api/evaluate', 'POST', {
             expression,
             variables,
@@ -56,7 +56,7 @@ class ApiClient {
         });
     }
 
-    async batchEvaluate(expressions, variables = {}, xRange = [-5, 5], numPoints = 1000) {
+    async batchEvaluate(expressions, variables = {}, xRange = [-30, 30], numPoints = 1000) {
         return this.makeRequest('/api/batch-evaluate', 'POST', {
             expressions,
             variables,
@@ -65,7 +65,7 @@ class ApiClient {
         });
     }
 
-    async updateParameters(expression, variables, xRange = [-5, 5]) {
+    async updateParameters(expression, variables, xRange = [-30, 30]) {
         return this.makeRequest('/api/update-params', 'POST', {
             expression,
             variables,

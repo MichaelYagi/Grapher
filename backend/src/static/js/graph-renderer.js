@@ -8,8 +8,8 @@ class GraphRenderer {
             width: 600,
             height: 600,
             margin: { top: 10, right: 14, bottom: 10, left: 10 },
-            xRange: [-10, 10],
-            yRange: [-10, 10],
+            xRange: [-30, 30],
+            yRange: [-30, 30],
             gridEnabled: true,
             axisColors: {
                 x: '#2563eb', // Blue
@@ -391,9 +391,9 @@ renderGrid() {
     }
 
     resetView() {
-        // Reset to default 10x10 viewport
-        this.options.xRange = [-5, 5];
-        this.options.yRange = [-5, 5];
+        // Reset to default 30x30 viewport
+        this.options.xRange = [-30, 30];
+        this.options.yRange = [-30, 30];
         
         this.xScale.domain(this.options.xRange);
         this.yScale.domain(this.options.yRange);

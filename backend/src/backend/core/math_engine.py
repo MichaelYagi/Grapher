@@ -601,7 +601,7 @@ class ExpressionEvaluator:
             'note': 'Parametric parsing to be enhanced'
         }
     
-    def generate_graph_data(self, expression: str, x_range: Tuple[float, float] = (-5, 5), 
+    def generate_graph_data(self, expression: str, x_range: Tuple[float, float] = (-30, 30), 
                           num_points: int = 1000, params: Dict[str, float] = None) -> Dict[str, Any]:
         """Generate coordinate data for graphing an expression (with preprocessing)"""
         try:

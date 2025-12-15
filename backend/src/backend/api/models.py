@@ -9,7 +9,7 @@ class CoordinatePoint(BaseModel):
 class ExpressionRequest(BaseModel):
     expression: str = Field(..., min_length=1, max_length=1000, description="Mathematical expression to evaluate")
     variables: Dict[str, float] = Field(default_factory=dict, description="Variable values for evaluation")
-    x_range: Optional[Tuple[float, float]] = Field(default=(-10.0, 10.0), description="X coordinate range for evaluation")
+    x_range: Optional[Tuple[float, float]] = Field(default=(-30.0, 30.0), description="X coordinate range for evaluation")
     num_points: Optional[int] = Field(default=1000, ge=10, le=10000, description="Number of points to generate")
     t_range: Optional[Tuple[float, float]] = Field(default=(0.0, 6.283185307179586), description="Parameter range for parametric equations")
     expression_format: Optional[str] = Field(default="auto", description="Format: 'auto', 'explicit', 'implicit', 'parametric'")
@@ -20,7 +20,7 @@ class ParseRequest(BaseModel):
 class BatchExpressionRequest(BaseModel):
     expressions: List[str] = Field(..., min_items=1, max_items=100, description="List of expressions to evaluate")
     variables: Dict[str, float] = Field(default_factory=dict, description="Common variable values")
-    x_range: Optional[Tuple[float, float]] = Field(default=(-5.0, 5.0), description="X coordinate range for evaluation")
+    x_range: Optional[Tuple[float, float]] = Field(default=(-30.0, 30.0), description="X coordinate range for evaluation")
     num_points: Optional[int] = Field(default=1000, ge=10, le=10000, description="Number of points to generate")
 
 class ParseResponse(BaseModel):
@@ -53,7 +53,7 @@ class BatchEvaluationResponse(BaseModel):
 class ParameterUpdateRequest(BaseModel):
     expression: str
     variables: Dict[str, float]
-    x_range: Optional[Tuple[float, float]] = Field(default=(-5.0, 5.0))
+    x_range: Optional[Tuple[float, float]] = Field(default=(-30.0, 30.0))
 
 class ParametricRequest(BaseModel):
     x_expression: str = Field(..., description="X component of parametric equation x(t)")

@@ -17,7 +17,7 @@ constructor() {
         ];
         
         // Range management
-        this.currentRange = 'small'; // 'small' or 'large'
+        this.currentRange = 'large'; // 'small' or 'large'
         this.ranges = {
             small: { x: [-10, 10], y: [-10, 10] },
             large: { x: [-30, 30], y: [-30, 30] }
@@ -427,7 +427,7 @@ plotExpression(expression) {
 
     replotAllFunctions() {
         // Clear and redraw all functions with new range
-        this.graphRenderer.clearAll();
+        this.graphRenderer.clearAllFunctions();
         this.plots.forEach(plot => {
             if (plot.data) {
                 const colorIndex = this.plots.indexOf(plot);
