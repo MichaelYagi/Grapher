@@ -17,7 +17,7 @@ constructor() {
         ];
         
         // Range management
-        this.currentRange = 'large'; // 'small' or 'large'
+        this.currentRange = 'small'; // 'small' or 'large'
         this.ranges = {
             small: { x: [-10, 10], y: [-10, 10] },
             large: { x: [-30, 30], y: [-30, 30] }
@@ -299,7 +299,7 @@ async plotFunction() {
         const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
                           this.currentParameters : {};
         
-        const xRange = [-10, 10]; // Use the 20x20 viewport
+        const xRange = [-30, 30]; // Use computation range
         
         const result = await apiClient.evaluateExpression(
             this.currentExpression,
@@ -418,11 +418,8 @@ plotExpression(expression) {
         this.currentRange = this.currentRange === 'small' ? 'large' : 'small';
         const range = this.ranges[this.currentRange];
         
-        // Update graph renderer with new range
+        // Update graph renderer with new range (scales handle the rest)
         this.graphRenderer.updateRange(range.x, range.y);
-        
-        // Replot all existing plots with new range
-        this.replotAllFunctions();
     }
 
     replotAllFunctions() {
@@ -584,10 +581,10 @@ plotExpression(expression) {
             const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
                               this.currentParameters : {};
             
-const result = await apiClient.evaluateExpression(
+            const result = await apiClient.evaluateExpression(
                 expression,
                 parameters,
-                this.ranges[this.currentRange].x,
+                [-30, 30], // Always use computation range
                 1000
             );
 

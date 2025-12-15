@@ -391,9 +391,9 @@ renderGrid() {
     }
 
     resetView() {
-        // Reset to default 30x30 viewport
-        this.options.xRange = [-30, 30];
-        this.options.yRange = [-30, 30];
+        // Reset to default 10x10 viewport (display default)
+        this.options.xRange = [-10, 10];
+        this.options.yRange = [-10, 10];
         
         this.xScale.domain(this.options.xRange);
         this.yScale.domain(this.options.yRange);
