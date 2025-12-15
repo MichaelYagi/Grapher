@@ -87,10 +87,6 @@ class ApiClient {
         });
     }
 
-    async parseExpression(expression) {
-        return this.makeRequest('/api/parse', 'POST', { expression });
-    }
-
     // Debounced parameter update for real-time updates
     createDebouncedParameterUpdate(delay = 300) {
         let timeoutId;

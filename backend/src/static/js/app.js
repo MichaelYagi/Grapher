@@ -29,6 +29,20 @@ constructor() {
         this.initialize();
     }
 
+    // Helper method to normalize mathematical expressions
+    normalizeExpression(expression) {
+        return expression.toLowerCase()
+            .replace(/sin/g, 'Math.sin')
+            .replace(/cos/g, 'Math.cos')
+            .replace(/tan/g, 'Math.tan')
+            .replace(/sqrt/g, 'Math.sqrt')
+            .replace(/log/g, 'Math.log')
+            .replace(/exp/g, 'Math.exp')
+            .replace(/pi/g, 'Math.PI')
+            .replace(/e/g, 'Math.E')
+            .replace(/\^/g, '**');
+    }
+
     async initialize() {
         // Setup event listeners
         this.setupEventListeners();
@@ -188,16 +202,7 @@ async validateAndParseExpression(expression) {
         try {
             // Basic syntax check using Function constructor (safer than eval)
             // This is a simplified check - backend validation is preferred
-            const testExpr = expression.toLowerCase()
-                .replace(/sin/g, 'Math.sin')
-                .replace(/cos/g, 'Math.cos')
-                .replace(/tan/g, 'Math.tan')
-                .replace(/sqrt/g, 'Math.sqrt')
-                .replace(/log/g, 'Math.log')
-                .replace(/exp/g, 'Math.exp')
-                .replace(/pi/g, 'Math.PI')
-                .replace(/e/g, 'Math.E')
-                .replace(/\^/g, '**');
+            const testExpr = this.normalizeExpression(expression);
 
             // Extract variables (simple pattern matching)
             const variablePattern = /\\b[a-zA-Z][a-zA-Z0-9]*\\b/g;
@@ -346,16 +351,7 @@ async plotFunction() {
     }
 
     evaluateExpressionLocally(x) {
-        const expr = this.currentExpression.toLowerCase()
-            .replace(/sin/g, 'Math.sin')
-            .replace(/cos/g, 'Math.cos')
-            .replace(/tan/g, 'Math.tan')
-            .replace(/sqrt/g, 'Math.sqrt')
-            .replace(/log/g, 'Math.log')
-            .replace(/exp/g, 'Math.exp')
-            .replace(/pi/g, 'Math.PI')
-            .replace(/e/g, 'Math.E')
-            .replace(/\^/g, '**');
+        const expr = this.normalizeExpression(this.currentExpression);
 
         const func = new Function('x', `return ${expr}`);
         return func(x);
@@ -479,24 +475,12 @@ plotExpression(expression) {
         return { expr: processedExpr, placeholders };
     }
 
-    restoreFunctionCalls(expr, placeholders) {
+    restoreFunctionCalls(expr, placeholders = null) {
         // Restore function calls from placeholders
-        if (!placeholders) return expr;
+        const placeholdersToUse = placeholders || this.functionPlaceholders;
+        if (!placeholdersToUse) return expr;
         
-        placeholders.forEach((funcCall, index) => {
-            const placeholder = `__FUNC_${index}__`;
-            // Simple string replacement since placeholders are unique
-            expr = expr.split(placeholder).join(funcCall);
-        });
-        
-        return expr;
-    }
-
-    restoreFunctionCalls(expr) {
-        // Restore function calls from placeholders
-        if (!this.functionPlaceholders) return expr;
-        
-        this.functionPlaceholders.forEach((funcCall, index) => {
+        placeholdersToUse.forEach((funcCall, index) => {
             const placeholder = `__FUNC_${index}__`;
             // Simple string replacement since placeholders are unique
             expr = expr.split(placeholder).join(funcCall);
@@ -761,13 +745,7 @@ plotExpression(expression) {
         }, 3000);
     }
 
-    resetView() {
-        this.graphRenderer.resetView();
-    }
 
-    toggleGrid() {
-        this.graphRenderer.toggleGrid();
-    }
 }
 
 // Initialize the app when DOM is ready
