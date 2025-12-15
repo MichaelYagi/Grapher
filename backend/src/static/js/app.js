@@ -524,17 +524,7 @@ async plotFunction() {
     }
 
     async addPlot(expression) {
-        // Check if plot already exists (exact match)
-        if (this.plots.some(plot => plot.expression === expression)) {
-            this.showError('This expression is already plotted');
-            return;
-        }
-
-        // Check for equivalent expressions
-        if (this.plots.some(plot => this.areExpressionsEquivalent(plot.expression, expression))) {
-            this.showError('This expression is already plotted');
-            return;
-        }
+        // Allow all expressions - no duplicate checking
 
         const plotId = this.plotIdCounter++;
         const colorIndex = this.plots.length % this.functionColors.length;
