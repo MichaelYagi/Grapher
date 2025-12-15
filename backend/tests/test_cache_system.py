@@ -13,13 +13,13 @@ import sys
 import os
 
 # Add the src directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 try:
     from backend.core.cache import CacheManager, MemoryCache
 except ImportError:
     # Handle relative imports
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
     from backend.core.cache import CacheManager, MemoryCache
 
 

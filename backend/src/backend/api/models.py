@@ -18,7 +18,7 @@ class ParseRequest(BaseModel):
     expression: str = Field(..., min_length=1, max_length=1000, description="Mathematical expression to parse")
 
 class BatchExpressionRequest(BaseModel):
-    expressions: List[str] = Field(..., min_items=1, max_items=100, description="List of expressions to evaluate")
+    expressions: List[str] = Field(..., min_length=1, max_length=100, description="List of expressions to evaluate")
     variables: Dict[str, float] = Field(default_factory=dict, description="Common variable values")
     x_range: Optional[Tuple[float, float]] = Field(default=(-30.0, 30.0), description="X coordinate range for evaluation")
     num_points: Optional[int] = Field(default=1000, ge=10, le=10000, description="Number of points to generate")

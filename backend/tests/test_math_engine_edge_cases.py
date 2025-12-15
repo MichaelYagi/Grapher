@@ -80,7 +80,7 @@ class TestMathEngineEdgeCases:
         assert np.isfinite(result)
         
         # Verify against manual calculation
-        expected = np.sin(np.cos(np.tan(np.sqrt(abs(1.0**2 + 1.0))))
+        expected = np.sin(np.cos(np.tan(np.sqrt(abs(1.0**2 + 1.0)))))
         assert abs(result - expected) < 1e-10
     
     def test_deeply_nested_parentheses(self):
