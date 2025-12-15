@@ -70,8 +70,11 @@ class TestMathEngineEdgeCases:
         assert np.isinf(result) or np.isnan(result)
         
         # Test operations that produce NaN
-        result = self.engine.evaluate_expression("sqrt(-1)", 0.0)
-        assert np.isnan(result)
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)
+            result = self.engine.evaluate_expression("sqrt(-1)", 0.0)
+            assert np.isnan(result)
     
     def test_complex_nested_functions(self):
         """Test deeply nested function calls"""
