@@ -80,6 +80,25 @@ class GraphRenderer {
         this.interactiveGroup = this.mainGroup.append('g')
             .attr('class', 'interactive');
 
+this.renderGrid();
+        this.renderAxes();
+    }
+
+    updateRange(xRange, yRange) {
+        // Update the options with new ranges
+        this.options.xRange = xRange;
+        this.options.yRange = yRange;
+
+        // Update scales
+        this.xScale = d3.scaleLinear()
+            .domain(xRange)
+            .range([0, this.innerWidth]);
+
+        this.yScale = d3.scaleLinear()
+            .domain(yRange)
+            .range([this.innerHeight, 0]); // Inverted for SVG coordinates
+
+        // Re-render grid and axes
         this.renderGrid();
         this.renderAxes();
     }

@@ -1,6 +1,6 @@
 // Main Application Controller
 class GrapherApp {
-    constructor() {
+constructor() {
         this.graphRenderer = new GraphRenderer('graph');
         this.currentExpression = '';
         this.currentVariables = [];
@@ -15,6 +15,13 @@ class GrapherApp {
             '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', 
             '#ec4899', '#84cc16', '#f97316', '#3b82f6', '#a855f7'
         ];
+        
+        // Range management
+        this.currentRange = 'small'; // 'small' or 'large'
+        this.ranges = {
+            small: { x: [-10, 10], y: [-10, 10] },
+            large: { x: [-30, 30], y: [-30, 30] }
+        };
         
         this.initialize();
     }
@@ -35,10 +42,11 @@ class GrapherApp {
         console.log('Grapher app initialized');
     }
 
-    setupEventListeners() {
+setupEventListeners() {
         const expressionInput = document.getElementById('expression');
         const plotButton = document.getElementById('plot-btn');
         const toggleGridButton = document.getElementById('toggle-grid-btn');
+        const toggleRangeButton = document.getElementById('toggle-range-btn');
         const downloadPngButton = document.getElementById('download-png-btn');
         const downloadSvgButton = document.getElementById('download-svg-btn');
         const deleteAllButton = document.getElementById('delete-all-btn');
@@ -65,6 +73,11 @@ class GrapherApp {
         // Graph control buttons
         toggleGridButton.addEventListener('click', () => {
             this.graphRenderer.toggleGrid();
+        });
+
+        // Range toggle button
+        toggleRangeButton.addEventListener('click', () => {
+            this.toggleRange();
         });
 
         // Download buttons
@@ -395,9 +408,32 @@ async plotFunction() {
         this.validateAndParseExpression(expression);
     }
 
-    plotExpression(expression) {
+plotExpression(expression) {
         this.setExpression(expression);
         this.plotFunction();
+    }
+
+    toggleRange() {
+        // Switch between ranges
+        this.currentRange = this.currentRange === 'small' ? 'large' : 'small';
+        const range = this.ranges[this.currentRange];
+        
+        // Update graph renderer with new range
+        this.graphRenderer.updateRange(range.x, range.y);
+        
+        // Replot all existing plots with new range
+        this.replotAllFunctions();
+    }
+
+    replotAllFunctions() {
+        // Clear and redraw all functions with new range
+        this.graphRenderer.clearAll();
+        this.plots.forEach(plot => {
+            if (plot.data) {
+                const colorIndex = this.plots.indexOf(plot);
+                this.graphRenderer.plotFunction(plot.expression, plot.data, colorIndex);
+            }
+        });
     }
 
 
@@ -548,10 +584,10 @@ async plotFunction() {
             const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
                               this.currentParameters : {};
             
-            const result = await apiClient.evaluateExpression(
+const result = await apiClient.evaluateExpression(
                 expression,
                 parameters,
-                [-10, 10],
+                this.ranges[this.currentRange].x,
                 1000
             );
 
