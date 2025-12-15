@@ -12,165 +12,152 @@ from unittest.mock import patch, MagicMock
 import sys
 import os
 
-# Add the src directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
+# Add src directory to Python path
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-try:
-    from backend.core.cache import CacheManager, MemoryCache
-except ImportError:
-    # Handle relative imports
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
-    from backend.core.cache import CacheManager, MemoryCache
+from backend.core.cache import MemoryCache, generate_cache_key
 
 
 class TestMemoryCache:
     """Test MemoryCache implementation"""
     
     def test_cache_initialization(self):
-        """Test cache initialization with default TTL"""
+        """Test cache initialization"""
         cache = MemoryCache()
-        assert cache.default_ttl == 3600
-        assert cache.cache == {}
-        assert len(cache.cache) == 0
+        assert cache._cache == {}
+        assert cache._lock is not None
     
-    def test_cache_initialization_with_custom_ttl(self):
-        """Test cache initialization with custom TTL"""
-        cache = MemoryCache(ttl=1800)
-        assert cache.default_ttl == 1800
-    
-    def test_cache_set_and_get(self):
+    @pytest.mark.asyncio
+    async def test_cache_set_and_get(self):
         """Test basic cache set and get operations"""
         cache = MemoryCache()
         key = "test_key"
         value = {"result": [1, 2, 3]}
         
-        cache.set(key, value)
-        retrieved = cache.get(key)
+        await cache.set(key, value)
+        retrieved = await cache.get(key)
         
         assert retrieved == value
     
-    def test_cache_get_nonexistent_key(self):
+    @pytest.mark.asyncio
+    async def test_cache_get_nonexistent_key(self):
         """Test getting non-existent key returns None"""
         cache = MemoryCache()
-        result = cache.get("nonexistent_key")
+        result = await cache.get("nonexistent_key")
         assert result is None
     
-    def test_cache_expiration(self):
+    @pytest.mark.asyncio
+    async def test_cache_expiration(self):
         """Test cache entry expiration"""
-        cache = MemoryCache(ttl=1)  # 1 second TTL
+        cache = MemoryCache()
         key = "expire_test"
-        value = {"result": "test"}
+        value = {"result": "expired"}
         
-        cache.set(key, value)
+        # Set with very short TTL (1 second)
+        await cache.set(key, value, ttl=1)
         
         # Should be available immediately
-        assert cache.get(key) == value
+        retrieved = await cache.get(key)
+        assert retrieved == value
         
         # Wait for expiration
-        time.sleep(2)
+        await asyncio.sleep(1.1)
         
-        # Should be expired
-        assert cache.get(key) is None
+        # Should be expired now
+        retrieved = await cache.get(key)
+        assert retrieved is None
     
-    def test_cache_custom_ttl(self):
+    @pytest.mark.asyncio
+    async def test_cache_custom_ttl(self):
         """Test cache with custom TTL for specific entry"""
-        cache = MemoryCache(ttl=10)  # Default 10 seconds
-        key = "custom_ttl_test"
-        value = {"result": "test"}
+        cache = MemoryCache()
+        key = "ttl_test"
+        value = {"result": "custom_ttl"}
         
-        cache.set(key, value, ttl=1)  # Custom 1 second TTL
+        # Set with 10 second TTL
+        await cache.set(key, value, ttl=10)
         
-        # Should be available immediately
-        assert cache.get(key) == value
-        
-        # Wait for custom expiration
-        time.sleep(2)
-        
-        # Should be expired even though default TTL is longer
-        assert cache.get(key) is None
+        # Should be available
+        retrieved = await cache.get(key)
+        assert retrieved == value
     
-    def test_cache_overwrite(self):
+    @pytest.mark.asyncio
+    async def test_cache_overwrite(self):
         """Test overwriting existing cache entry"""
         cache = MemoryCache()
         key = "overwrite_test"
         value1 = {"result": "first"}
         value2 = {"result": "second"}
         
-        cache.set(key, value1)
-        assert cache.get(key) == value1
+        await cache.set(key, value1)
+        assert await cache.get(key) == value1
         
-        cache.set(key, value2)
-        assert cache.get(key) == value2
+        await cache.set(key, value2)
+        assert await cache.get(key) == value2
+        assert await cache.get(key) != value1
     
-    def test_cache_delete(self):
+    @pytest.mark.asyncio
+    async def test_cache_delete(self):
         """Test cache deletion"""
         cache = MemoryCache()
         key = "delete_test"
         value = {"result": "test"}
         
-        cache.set(key, value)
-        assert cache.get(key) == value
+        await cache.set(key, value)
+        assert await cache.get(key) == value
         
-        cache.delete(key)
-        assert cache.get(key) is None
+        await cache.delete(key)
+        assert await cache.get(key) is None
     
-    def test_cache_clear(self):
+    @pytest.mark.asyncio
+    async def test_cache_clear(self):
         """Test clearing entire cache"""
         cache = MemoryCache()
         
         # Add multiple entries
         for i in range(5):
-            cache.set(f"key_{i}", {"result": i})
+            await cache.set(f"key_{i}", {"result": i})
         
-        assert len(cache.cache) == 5
+        # Clear all
+        await cache.clear()
         
-        cache.clear()
-        
-        assert len(cache.cache) == 0
+        # All should be gone
         for i in range(5):
-            assert cache.get(f"key_{i}") is None
+            assert await cache.get(f"key_{i}") is None
     
-    def test_cache_size_limit(self):
-        """Test cache size limiting (if implemented)"""
+    @pytest.mark.asyncio
+    async def test_cache_size_limit(self):
+        """Test cache size handling"""
         cache = MemoryCache()
         
-        # Add entries up to expected size
+        # Add entries
         entries = {}
-        for i in range(100):  # Add 100 entries
+        for i in range(10):
             key = f"size_test_{i}"
             value = {"result": i}
-            cache.set(key, value)
+            await cache.set(key, value)
             entries[key] = value
         
         # Verify cache contains entries
-        assert len(cache.cache) > 0
-        
-        # Should still be able to retrieve entries
-        assert cache.get("size_test_50") == entries["size_test_50"]
+        for key, value in entries.items():
+            retrieved = await cache.get(key)
+            assert retrieved == value
     
-    def test_cache_concurrent_access(self):
+    @pytest.mark.asyncio
+    async def test_cache_concurrent_access(self):
         """Test cache thread safety with concurrent access"""
         cache = MemoryCache()
-        results = []
         
-        def worker(worker_id):
+        async def worker(worker_id):
             key = f"concurrent_test_{worker_id}"
             value = {"result": worker_id}
-            cache.set(key, value)
-            retrieved = cache.get(key)
-            results.append(retrieved)
+            await cache.set(key, value)
+            retrieved = await cache.get(key)
+            return retrieved
         
-        # Create multiple threads
-        import threading
-        threads = []
-        for i in range(10):
-            thread = threading.Thread(target=worker, args=(i,))
-            threads.append(thread)
-            thread.start()
-        
-        # Wait for all threads
-        for thread in threads:
-            thread.join()
+        # Create multiple concurrent tasks
+        tasks = [worker(i) for i in range(10)]
+        results = await asyncio.gather(*tasks)
         
         # All operations should complete successfully
         assert len(results) == 10
@@ -178,304 +165,320 @@ class TestMemoryCache:
             assert result["result"] == i
 
 
-class TestCacheManager:
-    """Test CacheManager wrapper with mathematical expression caching"""
+class TestCacheFunctions:
+    """Test cache utility functions"""
     
     def test_generate_cache_key(self):
         """Test cache key generation"""
-        cache_manager = CacheManager()
-        
         expression = "x^2 + 2*x + 1"
-        params = {"a": 2.0, "b": 3.0}
+        params = {"a": 2.0, "b": 1.5}
         x_range = (-10, 10)
         
-        key1 = cache_manager._generate_cache_key(expression, params, x_range)
-        key2 = cache_manager._generate_cache_key(expression, params, x_range)
+        key = generate_cache_key(expression, params, x_range)
         
-        # Same inputs should generate same key
-        assert key1 == key2
+        # Key should be consistent
+        key2 = generate_cache_key(expression, params, x_range)
+        assert key == key2
         
-        # Different params should generate different key
-        different_params = {"a": 1.0, "b": 3.0}
-        key3 = cache_manager._generate_cache_key(expression, different_params, x_range)
-        assert key2 != key3
-        
-        # Key should be valid MD5 hash
-        assert len(key1) == 32
-        assert all(c in '0123456789abcdef' for c in key1)
+        # Key should be MD5 hash (32 characters)
+        assert len(key) == 32
+        assert all(c in '0123456789abcdef' for c in key)
     
     def test_generate_cache_key_none_params(self):
         """Test cache key generation with None parameters"""
-        cache_manager = CacheManager()
+        expression = "sin(x)"
         
+        key1 = generate_cache_key(expression)
+        key2 = generate_cache_key(expression, None)
+        key3 = generate_cache_key(expression, None, None)
+        
+        # All should be the same
+        assert key1 == key2 == key3
+    
+    def test_generate_cache_key_different_params(self):
+        """Test cache key generation with different parameters"""
+        expression = "a*x^2"
+        
+        key1 = generate_cache_key(expression, {"a": 1.0})
+        key2 = generate_cache_key(expression, {"a": 2.0})
+        key3 = generate_cache_key(expression, {"b": 1.0})
+        
+        # All should be different
+        assert key1 != key2 != key3
+    
+    def test_generate_cache_key_different_ranges(self):
+        """Test cache key generation with different ranges"""
         expression = "x^2"
-        key_with_none = cache_manager._generate_cache_key(expression, None, (-10, 10))
-        key_with_empty = cache_manager._generate_cache_key(expression, {}, (-10, 10))
+        params = {}
         
-        # None should be treated as empty dict
-        assert key_with_none == key_with_empty
+        key1 = generate_cache_key(expression, params, (-10, 10))
+        key2 = generate_cache_key(expression, params, (-20, 20))
+        key3 = generate_cache_key(expression, params, (0, 5))
+        
+        # All should be different
+        assert key1 != key2 != key3
     
-    def test_cache_mathematical_expression(self):
+    @pytest.mark.asyncio
+    async def test_cache_mathematical_expression(self):
         """Test caching mathematical expression results"""
-        cache_manager = CacheManager()
-        
-        expression = "sin(x) * cos(x)"
-        variables = {}
-        x_range = (-10, 10)
-        result = {
-            "coordinates": [{"x": 0, "y": 0}, {"x": 1, "y": 0.5}],
-            "total_points": 100,
-            "valid_points": 100
-        }
-        
-        # Cache the result
-        cache_key = cache_manager.cache_result(expression, variables, x_range, result)
-        
-        # Verify key is returned
-        assert cache_key is not None
-        assert len(cache_key) == 32
-        
-        # Retrieve from cache
-        cached_result = cache_manager.get_cached_result(expression, variables, x_range)
-        assert cached_result == result
-    
-    def test_cache_miss(self):
-        """Test cache miss for non-existent entry"""
-        cache_manager = CacheManager()
-        
-        expression = "non_existent_expression"
-        variables = {"a": 1.0}
+        cache = MemoryCache()
+        expression = "x^2 + sin(x)"
+        params = {"frequency": 1.0}
         x_range = (-5, 5)
         
-        result = cache_manager.get_cached_result(expression, variables, x_range)
+        # Generate cache key
+        key = generate_cache_key(expression, params, x_range)
+        
+        # Mock result
+        result = {
+            "coordinates": [{"x": 0, "y": 0}, {"x": 1, "y": 1.84}],
+            "total_points": 100,
+            "valid_points": 98
+        }
+        
+        # Cache result
+        await cache.set(key, result)
+        
+        # Retrieve result
+        cached_result = await cache.get(key)
+        assert cached_result == result
+        assert cached_result["coordinates"] == result["coordinates"]
+    
+    @pytest.mark.asyncio
+    async def test_cache_miss(self):
+        """Test cache miss for non-existent entry"""
+        cache = MemoryCache()
+        expression = "non_existent_function"
+        
+        key = generate_cache_key(expression, {}, (-10, 10))
+        result = await cache.get(key)
+        
         assert result is None
     
-    def test_cache_with_parameters(self):
+    @pytest.mark.asyncio
+    async def test_cache_with_parameters(self):
         """Test caching expressions with parameters"""
-        cache_manager = CacheManager()
-        
+        cache = MemoryCache()
         expression = "a*x^2 + b*sin(x)"
-        params1 = {"a": 2.0, "b": 1.0}
-        params2 = {"a": 3.0, "b": 2.0}
-        x_range = (-10, 10)
         
-        result1 = {"coordinates": [{"x": 1, "y": 2}]}
-        result2 = {"coordinates": [{"x": 1, "y": 5}]}
+        # Cache result for specific parameters
+        params1 = {"a": 1.0, "b": 2.0}
+        key1 = generate_cache_key(expression, params1, (-10, 10))
+        result1 = {"result": "with_params1"}
+        await cache.set(key1, result1)
         
-        # Cache both parameter sets
-        key1 = cache_manager.cache_result(expression, params1, x_range, result1)
-        key2 = cache_manager.cache_result(expression, params2, x_range, result2)
+        # Cache result for different parameters
+        params2 = {"a": 2.0, "b": 1.0}
+        key2 = generate_cache_key(expression, params2, (-10, 10))
+        result2 = {"result": "with_params2"}
+        await cache.set(key2, result2)
         
-        # Should get different cache entries
-        assert key1 != key2
-        
-        # Retrieve specific parameter combinations
-        retrieved1 = cache_manager.get_cached_result(expression, params1, x_range)
-        retrieved2 = cache_manager.get_cached_result(expression, params2, x_range)
-        
-        assert retrieved1 == result1
-        assert retrieved2 == result2
+        # Should get different results
+        assert await cache.get(key1) == result1
+        assert await cache.get(key2) == result2
+        assert await cache.get(key1) != await cache.get(key2)
     
-    def test_cache_invalidation(self):
+    @pytest.mark.asyncio
+    async def test_cache_invalidation(self):
         """Test cache invalidation"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
+        expression = "expiring_function"
         
-        expression = "x^2"
-        variables = {}
-        x_range = (-10, 10)
-        result = {"coordinates": [{"x": 1, "y": 1}]}
+        key = generate_cache_key(expression, {}, (-10, 10))
+        result = {"result": "will_expire"}
         
-        # Cache the result
-        cache_manager.cache_result(expression, variables, x_range, result)
+        # Set with short TTL
+        await cache.set(key, result, ttl=1)
         
-        # Verify it's cached
-        assert cache_manager.get_cached_result(expression, variables, x_range) == result
+        # Should be available
+        assert await cache.get(key) == result
         
-        # Invalidate cache
-        cache_manager.invalidate_cache(expression, variables, x_range)
-        
-        # Should no longer be cached
-        assert cache_manager.get_cached_result(expression, variables, x_range) is None
+        # Delete manually
+        await cache.delete(key)
+        assert await cache.get(key) is None
     
-    def test_cache_clear_all(self):
+    @pytest.mark.asyncio
+    async def test_cache_clear_all(self):
         """Test clearing all cache entries"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
         
-        # Add multiple cached expressions
-        for i in range(5):
-            expression = f"x^{i+1}"
-            cache_manager.cache_result(expression, {}, (-10, 10), {"coordinates": []})
+        # Add multiple expressions
+        expressions = ["x^2", "sin(x)", "exp(x)", "log(x)"]
+        for expr in expressions:
+            key = generate_cache_key(expr, {}, (-10, 10))
+            await cache.set(key, {"expression": expr})
         
-        # Clear all cache
-        cache_manager.clear_all_cache()
+        # Verify all exist
+        for expr in expressions:
+            key = generate_cache_key(expr, {}, (-10, 10))
+            assert await cache.get(key) is not None
         
-        # All should be cleared
-        for i in range(5):
-            expression = f"x^{i+1}"
-            result = cache_manager.get_cached_result(expression, {}, (-10, 10))
-            assert result is None
+        # Clear all
+        await cache.clear()
+        
+        # Verify all are gone
+        for expr in expressions:
+            key = generate_cache_key(expr, {}, (-10, 10))
+            assert await cache.get(key) is None
     
-    def test_cache_statistics(self):
+    @pytest.mark.asyncio
+    async def test_cache_statistics(self):
         """Test cache statistics and monitoring"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
         
-        # Initially should have zero stats
-        stats = cache_manager.get_statistics()
-        assert stats["total_entries"] == 0
-        assert stats["cache_hits"] == 0
-        assert stats["cache_misses"] == 0
+        # Initially empty
+        await cache.clear()
         
         # Add some entries
-        expression = "x^2"
-        result = {"coordinates": []}
+        for i in range(5):
+            key = f"stats_test_{i}"
+            await cache.set(key, {"value": i})
         
-        cache_manager.cache_result(expression, {}, (-10, 10), result)
-        stats = cache_manager.get_statistics()
-        assert stats["total_entries"] == 1
+        # Check internal cache size
+        assert len(cache._cache) == 5
         
-        # Cache hit
-        cached = cache_manager.get_cached_result(expression, {}, (-10, 10))
-        stats = cache_manager.get_statistics()
-        assert stats["cache_hits"] == 1
+        # Get some entries
+        for i in range(3):
+            key = f"stats_test_{i}"
+            result = await cache.get(key)
+            assert result["value"] == i
         
-        # Cache miss
-        missed = cache_manager.get_cached_result("sin(x)", {}, (-10, 10))
-        stats = cache_manager.get_statistics()
-        assert stats["cache_misses"] == 1
+        # Delete some entries
+        await cache.delete("stats_test_0")
+        await cache.delete("stats_test_1")
+        
+        # Check final size
+        assert len(cache._cache) == 3
 
 
 class TestCachePerformance:
-    """Test cache performance and memory usage"""
+    """Test cache performance characteristics"""
     
-    def test_cache_performance_large_dataset(self):
+    @pytest.mark.asyncio
+    async def test_cache_performance_large_dataset(self):
         """Test cache performance with large datasets"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
         
-        # Create a large result set
-        large_result = {
-            "coordinates": [{"x": i/10, "y": (i/10)**2} for i in range(10000)],
-            "total_points": 10000,
-            "valid_points": 10000
-        }
-        
-        # Measure cache operation time
+        # Add many entries
         start_time = time.time()
+        for i in range(100):
+            key = f"perf_test_{i}"
+            value = {"data": list(range(100)), "index": i}
+            await cache.set(key, value)
         
-        cache_manager.cache_result("x^2", {}, (-100, 100), large_result)
-        cache_time = time.time() - start_time
+        set_time = time.time() - start_time
         
-        # Should cache within reasonable time (< 1 second)
-        assert cache_time < 1.0
-        
-        # Measure retrieval time
+        # Retrieve many entries
         start_time = time.time()
+        for i in range(100):
+            key = f"perf_test_{i}"
+            await cache.get(key)
         
-        retrieved = cache_manager.get_cached_result("x^2", {}, (-100, 100))
-        retrieve_time = time.time() - start_time
+        get_time = time.time() - start_time
         
-        # Should retrieve much faster than computation (< 0.1 seconds)
-        assert retrieve_time < 0.1
-        assert retrieved == large_result
+        # Performance should be reasonable (less than 1 second for 100 operations)
+        assert set_time < 1.0
+        assert get_time < 1.0
     
-    def test_cache_memory_usage(self):
+    @pytest.mark.asyncio
+    async def test_cache_memory_usage(self):
         """Test cache memory usage and cleanup"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
         
-        # Add many large entries to test memory
-        for i in range(50):
-            large_result = {
-                "coordinates": [{"x": j, "y": j**2} for j in range(1000)],
-                "total_points": 1000,
-                "valid_points": 1000,
-                "metadata": f"large_entry_{i}" * 100  # Add some string data
-            }
-            cache_manager.cache_result(f"expression_{i}", {}, (-10, 10), large_result)
+        # Add entries with substantial data
+        for i in range(10):
+            key = f"memory_test_{i}"
+            value = {"data": list(range(1000)), "metadata": f"test_data_{i}"}
+            await cache.set(key, value)
         
-        # Check that cache can handle the load
-        stats = cache_manager.get_statistics()
-        assert stats["total_entries"] == 50
+        # Verify entries exist
+        assert len(cache._cache) == 10
         
-        # Clear and verify memory is freed
-        cache_manager.clear_all_cache()
-        stats = cache_manager.get_statistics()
-        assert stats["total_entries"] == 0
+        # Clear cache
+        await cache.clear()
+        
+        # Verify memory is cleared
+        assert len(cache._cache) == 0
 
 
 class TestCacheErrorHandling:
     """Test cache error handling and edge cases"""
     
-    def test_cache_with_none_result(self):
+    @pytest.mark.asyncio
+    async def test_cache_with_none_result(self):
         """Test caching None results (failed computations)"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
+        key = "none_result_test"
         
-        # Should handle None results gracefully
-        cache_key = cache_manager.cache_result("invalid_expr", {}, (-10, 10), None)
+        # Cache None result
+        await cache.set(key, None)
         
-        # May or may not cache None depending on implementation
-        retrieved = cache_manager.get_cached_result("invalid_expr", {}, (-10, 10))
-        
-        # Should handle None appropriately
-        assert retrieved is None or retrieved is None
+        # Should retrieve None
+        result = await cache.get(key)
+        assert result is None
     
-    def test_cache_with_malformed_data(self):
+    @pytest.mark.asyncio
+    async def test_cache_with_malformed_data(self):
         """Test cache with malformed or unserializable data"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
+        key = "malformed_test"
         
-        # Test with unserializable data (like functions)
-        try:
-            malformed_result = {"callback": lambda x: x**2}
-            cache_manager.cache_result("test_expr", {}, (-10, 10), malformed_result)
-            
-            # Should either handle gracefully or raise appropriate error
-            retrieved = cache_manager.get_cached_result("test_expr", {}, (-10, 10))
-            
-        except (TypeError, ValueError):
-            # Expected for unserializable data
-            pass
+        # Cache complex data structure
+        value = {
+            "function": lambda x: x**2,  # Non-serializable
+            "nested": {"deep": {"value": [1, 2, 3]}},
+            "unicode": "测试 🧮 数学"
+        }
+        
+        # Should still work (cache doesn't serialize, just stores)
+        await cache.set(key, value)
+        retrieved = await cache.get(key)
+        
+        # Retrieved value should match original
+        assert retrieved["unicode"] == value["unicode"]
+        assert retrieved["nested"] == value["nested"]
     
-    def test_cache_with_unicode(self):
+    @pytest.mark.asyncio
+    async def test_cache_with_unicode(self):
         """Test cache with unicode characters in expressions"""
-        cache_manager = CacheManager()
+        cache = MemoryCache()
         
-        unicode_expression = "x² + 2*x + π"  # Unicode exponent and pi
+        expressions = [
+            "x² + 2*x + 1",  # Superscript
+            "sin(π*x)",         # Pi symbol
+            "∑(i=1 to n)",      # Summation
+            "测试函数"           # Chinese characters
+        ]
         
-        try:
-            result = {"coordinates": [{"x": 1, "y": 4}]}
-            cache_key = cache_manager.cache_result(unicode_expression, {}, (-10, 10), result)
-            
-            # Should handle unicode or raise appropriate error
-            assert cache_key is not None or cache_key is None
-            
-            if cache_key:
-                retrieved = cache_manager.get_cached_result(unicode_expression, {}, (-10, 10))
-                assert retrieved == result
-                
-        except (UnicodeEncodeError, ValueError):
-            # Acceptable to reject unicode
-            pass
+        for expr in expressions:
+            key = f"unicode_test_{hash(expr)}"
+            await cache.set(key, {"expression": expr})
+            result = await cache.get(key)
+            assert result["expression"] == expr
     
-    @patch('time.time')
-    def test_cache_time_manipulation(self, mock_time):
+    @patch('backend.core.cache.datetime')
+    @pytest.mark.asyncio
+    async def test_cache_time_manipulation(self, mock_datetime):
         """Test cache behavior with controlled time"""
-        cache_manager = CacheManager(ttl=10)
+        from datetime import datetime as real_datetime
         
-        # Set initial time
-        mock_time.return_value = 1000.0
+        # Setup mock time
+        fixed_time = real_datetime(2023, 1, 1, 12, 0, 0)
+        mock_datetime.now.return_value = fixed_time
         
-        result = {"coordinates": [{"x": 1, "y": 1}]}
-        cache_manager.cache_result("x^2", {}, (-10, 10), result)
+        cache = MemoryCache()
+        key = "time_test"
+        value = {"result": "time_sensitive"}
         
-        # Should be available at current time
-        retrieved = cache_manager.get_cached_result("x^2", {}, (-10, 10))
-        assert retrieved == result
+        # Set cache entry
+        await cache.set(key, value, ttl=3600)
+        
+        # Should be available
+        assert await cache.get(key) == value
         
         # Advance time beyond TTL
-        mock_time.return_value = 1015.0  # 15 seconds later
+        future_time = real_datetime(2023, 1, 1, 13, 0, 1)  # 1 hour and 1 second later
+        mock_datetime.now.return_value = future_time
         
         # Should be expired
-        retrieved = cache_manager.get_cached_result("x^2", {}, (-10, 10))
-        assert retrieved is None
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
+        assert await cache.get(key) is None
