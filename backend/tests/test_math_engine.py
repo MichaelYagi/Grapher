@@ -1,10 +1,13 @@
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_math_engine():
     """Test the mathematical expression engine"""
     try:
+        from backend.core.math_engine import evaluator
+    except ImportError:
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
         from backend.core.math_engine import evaluator
         
         # Test basic expression
@@ -50,15 +53,15 @@ def test_math_engine():
         assert not is_valid, "Expected invalid expression to fail validation"
         
         print("\n✅ All math engine tests passed!")
-        return True
+        assert True
         
     except ImportError as e:
         print(f"❌ Import error: {e}")
         print("Note: This requires numpy and numexpr to be installed")
-        return False
+        assert False, f"Import error: {e}"
     except Exception as e:
         print(f"❌ Test failed: {e}")
-        return False
+        assert False, f"Test failed: {e}"
 
 if __name__ == "__main__":
     success = test_math_engine()

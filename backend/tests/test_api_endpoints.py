@@ -81,9 +81,9 @@ class TestParseEndpoint:
         response = client.post("/api/parse", json={})
         assert response.status_code == 422
     
-    def test_parse_non_json_request(self):
+def test_parse_non_json_request():
         """Test parse request with non-JSON content"""
-        response = client.post("/api/parse", data="not json", headers={"Content-Type": "text/plain"})
+        response = client.post("/api/parse", content="not json", headers={"Content-Type": "text/plain"})
         assert response.status_code == 422
 
 
@@ -383,18 +383,18 @@ class TestErrorHandling:
         response = client.get("/api/nonexistent")
         assert response.status_code == 404
     
-    def test_malformed_json(self):
+def test_malformed_json():
         """Test malformed JSON request"""
         response = client.post(
             "/api/parse",
-            data="{'invalid': json}",
+            content="{'invalid': json}",
             headers={"Content-Type": "application/json"}
         )
         assert response.status_code == 422
     
-    def test_missing_content_type(self):
+def test_missing_content_type():
         """Test request without content-type header"""
-        response = client.post("/api/parse", data='{"expression": "x^2"}')
+        response = client.post("/api/parse", content='{"expression": "x^2"}')
         # May or may not work depending on FastAPI configuration
         assert response.status_code in [200, 422]
 

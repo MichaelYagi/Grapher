@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 class Settings(BaseSettings):
     # API Settings
@@ -26,7 +27,6 @@ class Settings(BaseSettings):
     COMPUTATION_TIMEOUT: float = 5.0  # seconds
     MAX_POINTS_PER_GRAPH: int = 10000
     
-    class Config:
-        env_file = ".env"
+model_config = ConfigDict(env_file=".env", env_file_encoding='utf-8')
 
 settings = Settings()

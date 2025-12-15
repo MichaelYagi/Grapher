@@ -384,7 +384,12 @@ class ExpressionEvaluator:
         """Evaluate expression at a single point"""
         x_array = np.array([x])
         result = self.evaluate_expression(expression, x_array, params)
-        return float(result[0]) if not np.isnan(result[0]) else float('nan')
+        
+        # Handle both 0-dimensional and 1-dimensional arrays
+        if result.ndim == 0:
+            return float(result) if not np.isnan(result) else float('nan')
+        else:
+            return float(result[0]) if not np.isnan(result[0]) else float('nan')
     
     def solve_implicit_equation(self, equation: str, x_range: Tuple[float, float], 
                                num_points: int = 1000, params: Dict[str, float] = None) -> Tuple[np.ndarray, np.ndarray]:

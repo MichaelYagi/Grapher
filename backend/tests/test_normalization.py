@@ -1,10 +1,13 @@
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_expression_normalization():
     """Test expression normalization according to mathematical rules"""
     try:
+        from backend.core.math_engine import evaluator
+    except ImportError:
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
         from backend.core.math_engine import evaluator
         
         # Test cases for normalization rules
@@ -108,17 +111,17 @@ def test_expression_normalization():
         
         if failed == 0:
             print("✅ All normalization tests passed!")
-            return True
+            assert True
         else:
             print(f"❌ {failed} normalization tests failed!")
-            return False
+            assert False, f"{failed} normalization tests failed!"
             
     except ImportError as e:
         print(f"❌ Import error: {e}")
-        return False
+        assert False, f"Import error: {e}"
     except Exception as e:
         print(f"❌ Test failed: {e}")
-        return False
+        assert False, f"Test failed: {e}"
 
 if __name__ == "__main__":
     success = test_expression_normalization()
