@@ -23,6 +23,9 @@ constructor() {
             large: { x: [-30, 30], y: [-30, 30] }
         };
         
+        // Set initial range to default display range
+        this.graphRenderer.updateRange(this.ranges[this.currentRange].x, this.ranges[this.currentRange].y);
+        
         this.initialize();
     }
 
