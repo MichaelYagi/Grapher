@@ -407,13 +407,13 @@ class ExpressionEvaluator:
             if simple_match:
                 if simple_match.group(1) == 'x':
                     x_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
-                    y_coords = [12.0, -12.0]
+                    y_coords = [50.0, -50.0]
                 elif simple_match.group(1) == 'y':
-                    x_coords = [12.0, -12.0]
+                    x_coords = [50.0, -50.0]
                     y_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
                 else:
                     x_coords = [float(simple_match.group(2)), float(simple_match.group(2))]
-                    y_coords = [12.0, -12.0]
+                    y_coords = [50.0, -50.0]
 
                 return x_coords, y_coords
             
