@@ -256,6 +256,8 @@ class ExpressionParser:
                 r'locals\s*\(',
                 r'vars\s*\(',
                 r'dir\s*\(',
+                r'\+\+',  # increment operator
+                r'--',  # decrement operator
             ]
             
             # Allow '=' for implicit equations, block for other types
@@ -490,6 +492,201 @@ class ExpressionEvaluator:
             
         except Exception as e:
             raise ValueError(f"Parametric evaluation failed: {e}")
+    
+    def solve_parametric_equation(self, arg1, arg2 = None, arg3 = None, arg4 = None, arg5 = None) -> Dict[str, Any]:
+        """
+        Solve parametric equations and return result in expected format
+        
+        Handles two calling patterns:
+        1. solve_parametric_equation(x_expr, y_expr, t_range, num_points)
+        2. solve_parametric_equation(single_expression, None, t_range, num_points)
+        """
+        try:
+            # Determine calling pattern based on arguments
+            if arg2 is None:
+                # Pattern 2: single expression
+                single_expression = arg1
+                t_range = arg3 if arg3 is not None else (0, 2*np.pi)
+                num_points = arg4 if arg4 is not None else 1000
+                
+                # Parse single expression like "x(t) = cos(t), y(t) = sin(t)"
+                if ',' in single_expression:
+                    parts = single_expression.split(',', 1)
+                    if len(parts) == 2:
+                        x_expr = parts[0].strip()
+                        y_expr = parts[1].strip()
+                    else:
+                        raise ValueError("Invalid parametric expression format")
+                else:
+                    raise ValueError("Parametric expression must contain both x and y components")
+            else:
+                # Pattern 1: two separate expressions
+                x_expr = arg1
+                y_expr = arg2
+                t_range = arg3 if arg3 is not None else (0, 2*np.pi)
+                num_points = arg4 if arg4 is not None else 1000
+            
+            # Remove function notation if present (e.g., "x(t) = cos(t)" -> "cos(t)")
+            if x_expr and '=' in x_expr:
+                x_expr = x_expr.split('=', 1)[1].strip()
+            if y_expr and '=' in y_expr:
+                y_expr = y_expr.split('=', 1)[1].strip()
+            
+            # Validate that we have both expressions
+            if not x_expr or not y_expr:
+                raise ValueError("Both x and y expressions are required")
+            
+            # Use existing evaluate_parametric method
+            x_coords, y_coords = self.evaluate_parametric(x_expr, y_expr, t_range, num_points)
+            
+            # Generate t coordinates
+            t_coords = np.linspace(t_range[0], t_range[1], num_points)
+            
+            return {
+                'x_coords': x_coords,
+                'y_coords': y_coords,
+                't_coords': t_coords,
+                'type': 'parametric'
+            }
+            
+        except Exception as e:
+            raise ValueError(f"Parametric equation solving failed: {e}")
+    
+    def convert_latex_to_ascii(self, latex_str: str) -> str:
+        """
+        Convert basic LaTeX mathematical notation to ASCII format
+        This is a simple implementation for common LaTeX patterns
+        """
+        try:
+            if not isinstance(latex_str, str):
+                return str(latex_str)
+            
+            result = latex_str.strip()
+            
+            # Handle fractions \frac{numerator}{denominator}
+            import re
+            result = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', r'\1/\2', result)
+            
+            # Handle Greek letters
+            greek_letters = {
+                '\\alpha': 'alpha',
+                '\\beta': 'beta', 
+                '\\gamma': 'gamma',
+                '\\delta': 'delta',
+                '\\epsilon': 'epsilon',
+                '\\zeta': 'zeta',
+                '\\eta': 'eta',
+                '\\theta': 'theta',
+                '\\iota': 'iota',
+                '\\kappa': 'kappa',
+                '\\lambda': 'lambda',
+                '\\mu': 'mu',
+                '\\nu': 'nu',
+                '\\xi': 'xi',
+                '\\pi': 'pi',
+                '\\rho': 'rho',
+                '\\sigma': 'sigma',
+                '\\tau': 'tau',
+                '\\upsilon': 'upsilon',
+                '\\phi': 'phi',
+                '\\chi': 'chi',
+                '\\psi': 'psi',
+                '\\omega': 'omega',
+                '\\Alpha': 'Alpha',
+                '\\Beta': 'Beta',
+                '\\Gamma': 'Gamma',
+                '\\Delta': 'Delta',
+                '\\Epsilon': 'Epsilon',
+                '\\Zeta': 'Zeta',
+                '\\Eta': 'Eta',
+                '\\Theta': 'Theta',
+                '\\Iota': 'Iota',
+                '\\Kappa': 'Kappa',
+                '\\Lambda': 'Lambda',
+                '\\Mu': 'Mu',
+                '\\Nu': 'Nu',
+                '\\Xi': 'Xi',
+                '\\Pi': 'Pi',
+                '\\Rho': 'Rho',
+                '\\Sigma': 'Sigma',
+                '\\Tau': 'Tau',
+                '\\Upsilon': 'Upsilon',
+                '\\Phi': 'Phi',
+                '\\Chi': 'Chi',
+                '\\Psi': 'Psi',
+                '\\Omega': 'Omega'
+            }
+            
+            for latex_greek, ascii_greek in greek_letters.items():
+                result = result.replace(latex_greek, ascii_greek)
+            
+            # Handle mathematical operators
+            math_ops = {
+                '\\times': '*',
+                '\\cdot': '*',
+                '\\div': '/',
+                '\\pm': '+/-',
+                '\\mp': '-/+',
+                '\\leq': '<=',
+                '\\geq': '>=',
+                '\\neq': '!=',
+                '\\approx': '~=',
+                '\\equiv': '==',
+                '\\infty': 'inf',
+                '\\sum': 'sum',
+                '\\prod': 'prod',
+                '\\int': 'int',
+                '\\partial': 'd',
+                '\\nabla': 'grad',
+                '\\sin': 'sin',
+                '\\cos': 'cos',
+                '\\tan': 'tan',
+                '\\log': 'log',
+                '\\ln': 'ln',
+                '\\sqrt': 'sqrt'
+            }
+            
+            for latex_op, ascii_op in math_ops.items():
+                result = result.replace(latex_op, ascii_op)
+            
+            # Handle superscripts and subscripts
+            result = re.sub(r'\^{([^}]+)}', r'^\1', result)
+            result = re.sub(r'_{([^}]+)}', r'_\1', result)
+            
+            # Handle common parentheses
+            result = result.replace('\\left(', '(')
+            result = result.replace('\\right(', ')')
+            result = result.replace('\\left[', '[')
+            result = result.replace('\\right[', ']')
+            result = result.replace('\\left{', '{')
+            result = result.replace('\\right{', '}')
+            
+            # Remove extra backslashes
+            result = re.sub(r'\\(?![a-zA-Z{}^_])', '', result)
+            
+            return result
+            
+        except Exception:
+            # If conversion fails, return original string
+            return latex_str if isinstance(latex_str, str) else str(latex_str)
+    
+    def _is_valid_number(self, value) -> bool:
+        """
+        Check if a value is a valid finite number
+        Returns True for finite numbers, False for NaN, inf, or non-numeric types
+        """
+        try:
+            import numpy as np
+            
+            # Check if it's a number type
+            if isinstance(value, (int, float, np.number)):
+                # Check if it's finite (not NaN or inf)
+                return np.isfinite(float(value))
+            else:
+                # Try to convert to float and check if finite
+                return np.isfinite(float(value))
+        except (ValueError, TypeError, OverflowError):
+            return False
     
     def parse_and_classify_expression(self, expression: str) -> Dict[str, Any]:
         """

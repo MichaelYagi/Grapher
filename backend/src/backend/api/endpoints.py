@@ -133,21 +133,6 @@ async def evaluate_expression(request: ExpressionRequest):
             headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
         )
         
-        evaluation_time_ms = (time.time() - start_time) * 1000
-        
-        # Create response
-        response = EvaluationResponse(
-            expression=request.expression,
-            graph_data=graph_data,
-            evaluation_time_ms=evaluation_time_ms
-        )
-        
-        # Cache the result
-        if cache:
-            await cache.set(cache_key, response, settings.CACHE_TTL)
-        
-        return response
-        
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Expression evaluation failed: {str(e)}")
 
@@ -262,6 +247,11 @@ async def update_parameters(request: ParameterUpdateRequest):
     start_time = time.time()
     
     try:
+        # Validate expression first
+        is_valid, error_msg = evaluator.parser.validate_expression(request.expression)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=f"Invalid expression: {error_msg}")
+        
         # Check cache first
         cache_key = generate_cache_key(request.expression, request.variables, request.x_range)
         cache = get_cache()
