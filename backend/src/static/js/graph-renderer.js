@@ -194,7 +194,7 @@ renderGrid() {
         // Y-axis
         const yAxisLeft = d3.axisLeft(this.yScale)
             .ticks(21) // -10 to 10 inclusive
-            .tickFormat(d3.format('d'));
+            .tickFormat(d => d === 0 ? '' : d3.format('d')(d));
 
         this.yAxis
             .call(yAxisLeft)
