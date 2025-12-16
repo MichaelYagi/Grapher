@@ -40,6 +40,7 @@
 ### Prerequisites
 
 - Python 3.8 or higher
+- Node.js 14+ (for frontend testing)
 - Modern web browser (Chrome, Firefox, Safari, Edge)
 
 ### Installation
@@ -50,24 +51,60 @@
    cd Grapher
    ```
 
-2. **Set up Python backend**:
+2. **Install dependencies**:
    ```bash
-   cd backend
-   pip install -r requirements.txt
+   # Install Python dependencies
+   pip install -r backend/requirements.txt
+   
+   # Install Node.js dependencies (optional, for testing)
+   npm install
    ```
 
-3. **Start server**:
+3. **Run the application**:
    ```bash
-   # Option 1: Start backend and frontend separately
-   cd backend/src
-   python main.py
-   # Then open backend/src/static/index.html in browser
+   # Option 1: Backend only (open static/index.html in browser)
+   python start_backend.py
    
-   # Option 2: Use convenience scripts
-   python start_backend.py    # Starts backend only
-   python start_server.py     # Starts backend and serves frontend
+   # Option 2: Full server (backend + frontend serving)
+   python start_server.py
+   
+   # Option 3: Manual backend start
+   cd backend/src && python main.py
    ```
+   
    Navigate to `http://localhost:8000` in browser
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+# Run all backend tests
+cd backend && python -m pytest tests/ -v
+
+# Run with coverage
+cd backend && python -m pytest tests/ --cov=src --cov-report=html
+
+# Run specific test file
+python -m pytest tests/test_api_endpoints.py -v
+```
+
+### Frontend Tests
+```bash
+# Run frontend unit tests
+npm run test:frontend
+
+# Run with coverage
+npm run test:frontend -- --coverage
+```
+
+### All Tests
+```bash
+# Run complete test suite
+npm run test
+
+# Run with coverage for both backend and frontend
+npm run test:coverage
+```
 
 ## 📁 Project Structure
 
@@ -271,26 +308,30 @@ Content-Type: application/json
    - Maintains consistent user experience
    - Preserves computational data integrity
 
-## 🧪 Testing
-
-### Backend Tests
+### Quick Test Commands
 ```bash
-cd backend/tests
-python test_math_engine.py
-python test_normalization.py
+# Fast development test
+npm run test:backend && npm run test:frontend
+
+# Before commit testing
+npm run test:coverage
+
+# Specific backend test file
+python -m pytest tests/test_api_endpoints.py -v
+
+# Specific frontend test file
+npx jest backend/tests/test_frontend_unit_tests.js
 ```
 
-### Frontend Testing
-- Open browser developer tools
-- Test different browsers and screen sizes
-- Verify API integration in network tab
-- Test range toggle functionality
+### Test Coverage
+- **Backend**: 78-83% line coverage targeting >80%
+- **Frontend**: 75-80% statement coverage targeting >75%
+- **Total**: 150+ test cases across all modules
 
 ## 🔧 Configuration
 
-### Backend Environment Variables
-Create a `.env` file in backend directory:
-
+### Environment Setup
+Create `.env` file in backend directory:
 ```env
 DEBUG=true
 HOST=127.0.0.1
@@ -301,6 +342,14 @@ MAX_EXPRESSION_LENGTH=1000
 MAX_BATCH_SIZE=100
 COMPUTATION_TIMEOUT=5.0
 ```
+
+### Development Scripts
+Available npm scripts in package.json:
+- `npm start` - Start full server
+- `npm run start:backend` - Backend only
+- `npm run test` - Run all tests
+- `npm run test:coverage` - Tests with coverage
+- `npm run install:dev` - Install all dependencies
 
 ### Frontend Customization
 Modify settings in JavaScript files:
@@ -385,24 +434,28 @@ Modify settings in JavaScript files:
 ### Common Issues
 
 1. **Backend Connection Failed**:
-   - Ensure backend is running on `localhost:8000`
-   - Check firewall settings
-   - Verify Python dependencies are installed
+   - Ensure backend runs on `localhost:8000`
+   - Check `python start_backend.py` or `python start_server.py`
+   - Verify dependencies: `pip install -r backend/requirements.txt`
 
-2. **Graph Not Displaying**:
-   - Check browser console for errors
-   - Verify D3.js is loading correctly
-   - Test with a simple expression like `x`
+2. **Tests Not Running**:
+   - Backend: `pip install pytest pytest-asyncio httpx`
+   - Frontend: `npm install` for Jest dependencies
+   - Run from correct directory (backend for Python, root for npm)
 
-3. **Range Toggle Not Working**:
-   - Ensure functions are plotted with full computation range
-   - Check for JavaScript errors in console
-   - Verify backend is returning complete data
+3. **Graph Not Displaying**:
+   - Open browser console (F12) for JavaScript errors
+   - Test with simple expression like `x`
+   - Check network tab for API requests
 
-4. **Parameter Sliders Not Working**:
-   - Check expression syntax
-   - Ensure variables are properly named
-   - Verify backend is responding to parameter updates
+4. **Import Errors**:
+   ```bash
+   # Python path fix
+   export PYTHONPATH="${PYTHONPATH}:$(pwd)/backend/src"
+   
+   # Node.js module fix
+   npm install
+   ```
 
 ### Error Messages
 
