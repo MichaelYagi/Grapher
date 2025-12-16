@@ -316,6 +316,56 @@ class ExpressionParser:
         except Exception as e:
             return False, f"Validation error: {e}"
     
+    def parse_implicit_equation(self, equation: str) -> Dict[str, Any]:
+        """
+        Parse implicit equation and return structured information
+        Public method for external use
+        """
+        try:
+            # Preprocess equation first
+            processed_eq = self.preprocess_expression(equation)
+            
+            # Check if it's a valid implicit equation
+            if '=' not in processed_eq:
+                return {
+                    'type': 'error',
+                    'error': 'Implicit equation must contain = sign',
+                    'left': processed_eq,
+                    'right': '0'
+                }
+            
+            # Parse left and right parts
+            parts = processed_eq.split('=', 1)
+            left_side = parts[0].strip()
+            right_side = parts[1].strip()
+            
+            # Validate both sides are valid expressions
+            try:
+                import ast
+                ast.parse(left_side, mode='eval')
+                ast.parse(right_side, mode='eval')
+                is_valid = True
+                error = None
+            except SyntaxError as e:
+                is_valid = False
+                error = f"Syntax error: {e}"
+            
+            return {
+                'type': 'implicit' if is_valid else 'error',
+                'left': left_side,
+                'right': right_side,
+                'error': error,
+                'is_valid': is_valid
+            }
+            
+        except Exception as e:
+            return {
+                'type': 'error',
+                'error': f'Parse error: {str(e)}',
+                'left': equation,
+                'right': '0'
+            }
+    
     def compile_expression(self, expression: str) -> Optional[str]:
         """Compile expression to optimized numexpr format for faster evaluation"""
         try:
@@ -785,7 +835,7 @@ class ExpressionEvaluator:
             }
     
     def _parse_implicit_equation(self, equation: str) -> Dict[str, str]:
-        """Parse implicit equation into left and right parts"""
+        """Parse implicit equation into left and right parts (internal method)"""
         if '=' not in equation:
             return {'left': equation, 'right': '0'}
         
