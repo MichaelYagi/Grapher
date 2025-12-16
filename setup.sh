@@ -27,18 +27,18 @@ if [ ! -f "backend/src/main.py" ]; then
 fi
 
 # Create virtual environment (recreate if incomplete)
-if [ ! -f "venv/bin/activate" ] && [ ! -f "venv/Scripts/activate" ]; then
+if [ ! -f ".venv/bin/activate" ] && [ ! -f ".venv/Scripts/activate" ]; then
     echo "📦 Creating virtual environment..."
-    rm -rf venv
-    $PYTHON -m venv venv
+    rm -rf .venv
+    $PYTHON -m venv .venv
 fi
 
 # Activate virtual environment
 echo "🔧 Activating virtual environment..."
-if [ -f "venv/bin/activate" ]; then
-    source venv/bin/activate
-elif [ -f "venv/Scripts/activate" ]; then
-    source venv/Scripts/activate
+if [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+elif [ -f ".venv/Scripts/activate" ]; then
+    source .venv/Scripts/activate
 else
     echo "❌ Error: Virtual environment activation file not found"
     exit 1
@@ -73,7 +73,7 @@ echo "🔨 Creating startup script..."
 cat > start_grapher.sh << 'EOF'
 #!/bin/bash
 cd "$(dirname "$0")"
-source venv/bin/activate 2>/dev/null || source venv/Scripts/activate 2>/dev/null
+source .venv/bin/activate 2>/dev/null || source .venv/Scripts/activate 2>/dev/null
 python backend/src/main.py
 EOF
 chmod +x start_grapher.sh
@@ -82,7 +82,7 @@ chmod +x start_grapher.sh
 cat > start_grapher.bat << 'EOF'
 @echo off
 cd /d "%~dp0"
-call venv\Scripts\activate.bat
+call .venv\Scripts\activate.bat
 python backend\src\main.py
 pause
 EOF
