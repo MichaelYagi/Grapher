@@ -39,8 +39,9 @@ app.add_middleware(
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Mount static files
+static_dir = os.path.join(os.path.dirname(__file__), "static")
 try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 except RuntimeError:
     # Static files directory doesn't exist or is empty
     pass
@@ -50,11 +51,13 @@ app.include_router(router, prefix="/api")
 
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    index_path = os.path.join(static_dir, "index.html")
+    return FileResponse(index_path)
 
 @app.get("/app")
 async def serve_frontend():
-    return FileResponse("static/index.html")
+    index_path = os.path.join(static_dir, "index.html")
+    return FileResponse(index_path)
 
 @app.get("/health")
 async def health_check():
