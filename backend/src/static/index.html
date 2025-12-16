@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Grapher - Mathematical Function Visualizer</title>
     
     <!-- Favicon -->
@@ -349,6 +349,300 @@
         #error-container {
             margin-top: 15px;
             width: 74%;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 12px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .header p {
+                font-size: 1em;
+            }
+
+            .main-content {
+                flex-direction: column;
+                min-height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                padding: 20px;
+                border-right: none;
+                border-bottom: 1px solid #e9ecef;
+            }
+
+            .graph-container {
+                padding: 15px;
+            }
+
+            .expression-input {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 15px;
+            }
+
+            .btn {
+                padding: 15px 20px;
+                font-size: 16px;
+                min-height: 48px; /* Touch-friendly */
+            }
+
+            .graph-controls {
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+
+            .graph-controls button {
+                flex: 1;
+                min-width: calc(50% - 4px);
+                padding: 12px 8px;
+                font-size: 13px;
+                min-height: 44px; /* Touch-friendly */
+                white-space: nowrap;
+            }
+
+            #graph {
+                width: 100% !important;
+                height: 400px !important;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+
+            .plot-item {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+
+            .plot-expression {
+                font-size: 13px;
+                word-break: break-all;
+            }
+
+            .plot-controls {
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .plot-btn {
+                padding: 8px 12px;
+                font-size: 13px;
+                min-height: 36px;
+                text-align: center;
+            }
+
+            .plots-controls {
+                display: flex;
+            }
+
+            .plots-controls button {
+                flex: 1;
+                min-height: 40px;
+            }
+
+            #error-container {
+                width: 100%;
+            }
+
+            .validation-message {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+        }
+
+        /* Small mobile screens */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .header p {
+                font-size: 0.9em;
+            }
+
+            .sidebar {
+                padding: 15px;
+            }
+
+            .graph-container {
+                padding: 10px;
+            }
+
+            .graph-controls button {
+                font-size: 12px;
+                padding: 10px 6px;
+                min-height: 40px;
+            }
+
+            #graph {
+                height: 350px !important;
+            }
+
+            .plot-item {
+                padding: 12px;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .plot-info {
+                width: 100%;
+            }
+
+            .plot-controls {
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .main-content {
+                flex-direction: row;
+            }
+
+            .sidebar {
+                width: 45%;
+                max-width: 350px;
+                border-right: 1px solid #e9ecef;
+                border-bottom: none;
+            }
+
+            #graph {
+                height: 450px !important;
+            }
+        }
+
+        /* Tablet optimization */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .sidebar {
+                width: 300px;
+            }
+
+            #graph {
+                width: 500px !important;
+                height: 500px !important;
+            }
+        }
+
+        /* Mobile-specific error styles */
+        .mobile-error {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            color: #721c24;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #f1b0b7;
+            margin-bottom: 20px;
+            position: relative;
+            animation: slideInUp 0.3s ease-out;
+        }
+
+        .mobile-error-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .error-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .error-text {
+            flex: 1;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .error-dismiss {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            color: #721c24;
+            opacity: 0.7;
+            transition: opacity 0.2s ease;
+        }
+
+        .error-dismiss:hover {
+            opacity: 1;
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile-specific input improvements */
+        .mobile .expression-input {
+            -webkit-appearance: none;
+            border-radius: 12px;
+            background: #f8f9fa;
+        }
+
+        .mobile .expression-input:focus {
+            background: white;
+        }
+
+        /* Touch-friendly hover states */
+        @media (hover: none) {
+            .btn:hover {
+                transform: none;
+            }
+            
+            .plot-item:hover {
+                box-shadow: none;
+                background: #f8f9fa;
+            }
+            
+            .plot-btn:hover {
+                background: none;
+            }
+        }
+
+        /* Better mobile scrolling */
+        .mobile .sidebar {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .mobile .graph-container {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Mobile-safe touch targets */
+        .mobile .plot-btn {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .mobile .graph-controls button {
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>

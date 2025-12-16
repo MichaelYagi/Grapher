@@ -26,6 +26,9 @@ constructor() {
         // Set initial range to default display range
         this.graphRenderer.updateRange(this.ranges[this.currentRange].x, this.ranges[this.currentRange].y);
         
+        // Setup mobile optimizations
+        this.setupMobileOptimizations();
+        
         this.initialize();
     }
 
@@ -386,6 +389,105 @@ async plotFunction() {
         } else {
             errorContainer.innerHTML = '';
         }
+    }
+
+    // Mobile-specific optimizations
+    setupMobileOptimizations() {
+        this.isMobile = window.innerWidth <= 768;
+        this.isSmallMobile = window.innerWidth <= 480;
+        
+        if (this.isMobile) {
+            this.setupMobileUI();
+            this.setupMobileKeyboardHandling();
+            this.setupMobileTouchOptimizations();
+        }
+    }
+
+    setupMobileUI() {
+        // Add mobile-specific UI elements
+        const header = document.querySelector('.header');
+        if (this.isSmallMobile) {
+            header.style.padding = '15px';
+        }
+        
+        // Optimize button layout for mobile
+        const graphControls = document.querySelector('.graph-controls');
+        if (graphControls) {
+            graphControls.classList.add('mobile-optimized');
+        }
+        
+        // Add mobile-specific class to body
+        document.body.classList.add(this.isMobile ? 'mobile' : 'desktop');
+    }
+
+    setupMobileKeyboardHandling() {
+        const expressionInput = document.getElementById('expression');
+        
+        // Prevent zoom on iOS when focusing input
+        expressionInput.addEventListener('touchstart', (e) => {
+            e.target.style.fontSize = '16px';
+        });
+        
+        // Better handling of virtual keyboard
+        expressionInput.addEventListener('focus', () => {
+            if (this.isMobile) {
+                // Scroll input into view when keyboard appears
+                setTimeout(() => {
+                    expressionInput.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                }, 300);
+            }
+        });
+        
+        // Auto-advance to plot button on mobile
+        expressionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && this.isMobile) {
+                const plotBtn = document.getElementById('plot-btn');
+                if (!plotBtn.disabled) {
+                    plotBtn.click();
+                }
+            }
+        });
+    }
+
+    setupMobileTouchOptimizations() {
+        // Add better touch targets for mobile
+        const plotItems = document.querySelectorAll('.plot-item');
+        plotItems.forEach(item => {
+            item.style.minHeight = '48px'; // Minimum touch target size
+        });
+        
+        // Prevent accidental touches during graph interaction
+        const graphContainer = document.querySelector('.graph-container');
+        if (graphContainer) {
+            graphContainer.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 1) {
+                    e.preventDefault(); // Prevent page scroll on pinch
+                }
+            }, { passive: false });
+        }
+    }
+
+    // Mobile-friendly error handling
+    showMobileError(message) {
+        if (!this.isMobile) {
+            this.showError(message);
+            return;
+        }
+        
+        // Use mobile-optimized error display
+        const errorContainer = document.getElementById('error-container');
+        errorContainer.innerHTML = `
+            <div class="mobile-error">
+                <div class="mobile-error-content">
+                    <span class="error-icon">⚠️</span>
+                    <span class="error-text">${message}</span>
+                </div>
+                <button class="error-dismiss" onclick="this.parentElement.innerHTML=''">✕</button>
+            </div>
+        `;
     }
 
     showWarning(message) {

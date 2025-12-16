@@ -36,11 +36,179 @@ class GraphRenderer {
 
         this.setupChart();
         this.functions = [];
+        
+        // Mobile touch support
+        this.setupTouchEvents();
+        this.setupResizeHandler();
+    }
+
+    setupResponsiveDimensions() {
+        const isMobile = window.innerWidth <= 768;
+        const isSmallMobile = window.innerWidth <= 480;
+        const isLandscape = window.innerHeight < window.innerWidth && isMobile;
+
+        if (isMobile) {
+            if (isLandscape) {
+                // Landscape mobile - square ish
+                this.options.width = Math.min(450, window.innerWidth - 40);
+                this.options.height = Math.min(450, window.innerHeight - 200);
+            } else if (isSmallMobile) {
+                // Small mobile portrait
+                this.options.width = window.innerWidth - 30;
+                this.options.height = 350;
+            } else {
+                // Regular mobile portrait
+                this.options.width = window.innerWidth - 30;
+                this.options.height = 400;
+            }
+            
+            // Reduce margins for mobile
+            this.options.margin = { top: 8, right: 10, bottom: 8, left: 8 };
+        } else if (window.innerWidth <= 1024) {
+            // Tablet
+            this.options.width = 500;
+            this.options.height = 500;
+        }
+        
+        // Recalculate inner dimensions
+        this.innerWidth = this.options.width - this.options.margin.left - this.options.margin.right;
+        this.innerHeight = this.options.height - this.options.margin.top - this.options.margin.bottom;
+    }
+
+    setupTouchEvents() {
+        const svg = this.svg.node();
+        
+        // Touch event handlers for mobile interaction
+        let touchStartPoint = null;
+        let initialTransform = null;
+
+        const handleTouchStart = (event) => {
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+                touchStartPoint = {
+                    x: touch.clientX,
+                    y: touch.clientY
+                };
+                initialTransform = this.getCurrentTransform();
+            }
+        };
+
+        const handleTouchMove = (event) => {
+            if (event.touches.length === 1 && touchStartPoint) {
+                event.preventDefault();
+                const touch = event.touches[0];
+                const dx = touch.clientX - touchStartPoint.x;
+                const dy = touch.clientY - touchStartPoint.y;
+                
+                // Apply pan with touch
+                this.panTo(initialTransform.x + dx, initialTransform.y + dy);
+            }
+        };
+
+        const handleTouchEnd = () => {
+            touchStartPoint = null;
+            initialTransform = null;
+        };
+
+        // Add touch event listeners
+        svg.addEventListener('touchstart', handleTouchStart, { passive: false });
+        svg.addEventListener('touchmove', handleTouchMove, { passive: false });
+        svg.addEventListener('touchend', handleTouchEnd);
+
+        // Pinch-to-zoom support
+        let initialDistance = 0;
+        let initialScale = 1;
+
+        const handlePinchStart = (event) => {
+            if (event.touches.length === 2) {
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                initialDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                initialScale = this.getCurrentTransform().scale;
+            }
+        };
+
+        const handlePinchMove = (event) => {
+            if (event.touches.length === 2 && initialDistance > 0) {
+                event.preventDefault();
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                const scale = initialScale * (currentDistance / initialDistance);
+                this.zoomTo(scale);
+            }
+        };
+
+        svg.addEventListener('touchstart', handlePinchStart, { passive: false });
+        svg.addEventListener('touchmove', handlePinchMove, { passive: false });
+    }
+
+    setupResizeHandler() {
+        let resizeTimeout;
+        
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                const oldWidth = this.options.width;
+                const oldHeight = this.options.height;
+                
+                this.setupResponsiveDimensions();
+                
+                // Only redraw if dimensions actually changed
+                if (oldWidth !== this.options.width || oldHeight !== this.options.height) {
+                    this.setupChart();
+                    this.redrawAllFunctions();
+                }
+            }, 250); // Debounce resize events
+        };
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
+    }
+
+    getCurrentTransform() {
+        // Get current transformation matrix for pan/zoom operations
+        const transform = this.mainGroup.property('__zoom') || { x: 0, y: 0, scale: 1 };
+        return transform;
+    }
+
+    panTo(x, y) {
+        // Pan the graph to the specified coordinates
+        this.mainGroup.transition()
+            .duration(100)
+            .attr('transform', `translate(${x},${y})`);
+    }
+
+    zoomTo(scale) {
+        // Zoom the graph to the specified scale
+        const currentTransform = this.getCurrentTransform();
+        this.mainGroup.transition()
+            .duration(100)
+            .attr('transform', `translate(${currentTransform.x},${currentTransform.y}) scale(${scale})`);
+    }
+
+    redrawAllFunctions() {
+        // Redraw all functions after resize
+        const tempFunctions = [...this.functions];
+        this.functions = [];
+        tempFunctions.forEach(func => {
+            this.addFunction(func.data, func.color, func.expression, func.type);
+        });
     }
 
     setupChart() {
         // Clear any existing content
         this.svg.selectAll('*').remove();
+
+        // Set up responsive dimensions for mobile
+        this.setupResponsiveDimensions();
 
         // Create main group
         this.mainGroup = this.svg
