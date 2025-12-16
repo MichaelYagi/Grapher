@@ -538,7 +538,7 @@ openspec/
 
 ## 📄 License
 
-This project is licensed under MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under MIT License.
 
 ## 🤝 Contributing
 
