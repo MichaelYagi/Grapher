@@ -12,8 +12,8 @@ class GraphRenderer {
             yRange: [-30, 30],
             gridEnabled: true,
             axisColors: {
-                x: '#2563eb', // Blue
-                y: '#dc2626',  // Red
+                x: '#6b7280', // Grey
+                y: '#6b7280', // Grey
                 grid: '#e5e7eb',
                 text: '#374151'
             },
