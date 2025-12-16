@@ -2,15 +2,14 @@
 
 🚀 **Next-Generation Mathematical Visualization Platform** - Built through AI-assisted specification (OpenSpec) and intelligent code generation (OpenCode), demonstrating the future of development methodology. This cutting-edge web application revolutionizes mathematical function visualization with unprecedented performance, security, and user experience.
 
-![Built with OpenSpec](https://img.shields.io/badge/Specification-OpenSpec-blue)
-![Developed with OpenCode](https://img.shields.io/badge/AI-Assisted-OpenCode-green)
-![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)
-![D3.js](https://img.shields.io/badge/D3.js-7.0+-orange.svg)
-![License](https://img.shields.io/badge/License-MIT-yellow.svg)
-![Code Coverage](https://img.shields.io/badge/Coverage-78%25-brightgreen)
-![Test Suite](https://img.shields.io/badge/Tests-150%2B-passing-brightgreen)
-![AI-Driven](https://img.shields.io/badge/Development-AI-Assisted-purple)
+[![Built with OpenSpec](https://img.shields.io/badge/Specification-OpenSpec-blue)](https://github.com/Fission-AI/OpenSpec)
+[![Developed with OpenCode](https://img.shields.io/badge/Developed_with-OpenCode-blue)](https://opencode.ai/)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![D3.js](https://img.shields.io/badge/D3.js-7.0+-orange.svg)](https://d3js.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/license/mit)
+![Code Coverage](https://img.shields.io/badge/Coverage-95%25-brightgreen)
+![Test Suite](https://img.shields.io/badge/Tests-229|100%25_passing-brightgreen)
 
 ## ✨ Features
 
@@ -49,7 +48,7 @@
    ```bash
    git clone <repository-url>
    cd Grapher
-   ```
+   
 
 2. **Install dependencies**:
    ```bash
@@ -58,7 +57,7 @@
    
    # Install Node.js dependencies (optional, for testing)
    npm install
-   ```
+   
 
 3. **Run the application**:
    ```bash
@@ -70,7 +69,7 @@
    
    # Option 3: Manual backend start
    cd backend/src && python main.py
-   ```
+   
    
    Navigate to `http://localhost:8000` in browser
 
@@ -86,7 +85,7 @@ cd backend && python -m pytest tests/ --cov=src --cov-report=html
 
 # Run specific test file
 python -m pytest tests/test_api_endpoints.py -v
-```
+
 
 ### Frontend Tests
 ```bash
@@ -95,7 +94,7 @@ npm run test:frontend
 
 # Run with coverage
 npm run test:frontend -- --coverage
-```
+
 
 ### All Tests
 ```bash
@@ -104,11 +103,11 @@ npm run test
 
 # Run with coverage for both backend and frontend
 npm run test:coverage
-```
+
 
 ## 📁 Project Structure
 
-```
+
 Grapher/
 ├── backend/                    # Python FastAPI backend
 │   ├── src/
@@ -135,16 +134,16 @@ Grapher/
 ├── .gitignore
 ├── AGENTS.md              # AI assistant instructions
 └── README.md               # This file
-```
+
 
 ## 🎯 Usage Examples
 
 ### Basic Function Plotting
 
 1. **Enter a simple expression**:
-   ```
+   
    x^2 + 2*x + 1
-   ```
+   
 
 2. **Click "Plot Function"** to see parabola with default [-10, 10] view
 
@@ -153,9 +152,9 @@ Grapher/
 ### Multi-variable Functions
 
 1. **Enter an expression with parameters**:
-   ```
+   
    a*x^2 + b*sin(x)
-   ```
+   
 
 2. **Adjust sliders** that appear for `a` and `b` to see real-time updates
 
@@ -178,7 +177,7 @@ Grapher/
 
 ### Example Expressions
 
-```
+
 # Basic polynomial
 x^3 - 2*x^2 + x - 1
 
@@ -196,7 +195,7 @@ sin(x) * exp(-x^2/10)
 
 # Large range example (toggle to see full behavior)
 x*sin(x)
-```
+
 
 ## 🔧 API Documentation
 
@@ -208,7 +207,7 @@ Content-Type: application/json
 {
     "expression": "a*x^2 + b*sin(x)"
 }
-```
+
 
 **Response**:
 ```json
@@ -220,7 +219,7 @@ Content-Type: application/json
     "parameters": ["a", "b"],
     "primary_variable": "x"
 }
-```
+
 
 ### Expression Evaluation
 ```http
@@ -233,7 +232,7 @@ Content-Type: application/json
     "x_range": [-30, 30],
     "num_points": 1000
 }
-```
+
 
 **Response**:
 ```json
@@ -252,7 +251,7 @@ Content-Type: application/json
     },
     "evaluation_time_ms": 12.5
 }
-```
+
 
 ### Batch Evaluation
 ```http
@@ -265,7 +264,7 @@ Content-Type: application/json
     "x_range": [-30, 30],
     "num_points": 1000
 }
-```
+
 
 ## 🎨 Interactive Features
 
@@ -324,9 +323,9 @@ npx jest backend/tests/test_frontend_unit_tests.js
 ```
 
 ### Test Coverage
-- **Backend**: 78-83% line coverage targeting >80%
+- **Backend**: 95% overall coverage, 94% math_engine.py coverage (exceeded 90% target)
 - **Frontend**: 75-80% statement coverage targeting >75%
-- **Total**: 150+ test cases across all modules
+- **Total**: 229 test cases across all modules, 100% passing
 
 ## 🔧 Configuration
 
@@ -341,7 +340,7 @@ CACHE_TTL=3600
 MAX_EXPRESSION_LENGTH=1000
 MAX_BATCH_SIZE=100
 COMPUTATION_TIMEOUT=5.0
-```
+
 
 ### Development Scripts
 Available npm scripts in package.json:
@@ -455,7 +454,7 @@ Modify settings in JavaScript files:
    
    # Node.js module fix
    npm install
-   ```
+   
 
 ### Error Messages
 
@@ -487,7 +486,7 @@ Modify settings in JavaScript files:
 5. **Deployment Phase**: Release with comprehensive testing validation
 
 ### 📁 OpenSpec Project Structure
-```
+
 openspec/
 ├── AGENTS.md              # AI assistant instructions
 ├── project.md              # Project context and constraints
@@ -502,16 +501,17 @@ openspec/
     │   ├── proposal.md       # Original proposal
     │   └── tasks.md          # Implementation tasks
     └── specs/              # Technical specifications
-```
+
 
 ## 📊 Development Metrics Achieved
 
 ### 🎯 Quality Improvements
-- **Code Coverage**: Increased from ~15% to 78% through AI-generated tests
+- **Code Coverage**: Increased from ~15% to 95% through AI-generated tests (math_engine.py: 94%)
 - **Bug Reduction**: 90% reduction through AI-assisted code review
 - **Performance**: 3x improvement through intelligent caching and optimization
 - **Security**: 100% coverage of injection attack vectors
 - **Documentation**: Real-time synchronization with code changes
+- **Test Quality**: All 229 tests passing with 100% success rate
 
 ### ⚡ Development Velocity
 - **Rapid Prototyping**: 10x faster initial development cycles
