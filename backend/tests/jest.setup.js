@@ -7,14 +7,15 @@
 require('jest-environment-jsdom');
 
 // Mock global fetch for API testing
-global.fetch = jest.fn(() =>
-    Promise.resolve({
-        ok: true,
-        status: 200,
-        json: () => Promise.resolve({}),
-        text: () => Promise.resolve('')
-    })
-);
+global.fetch = jest.fn()
+    .mockImplementation(() =>
+        Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve('')
+        })
+    );
 
 // Mock localStorage
 const localStorageMock = (() => {

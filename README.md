@@ -71,7 +71,7 @@
    cd backend/src && python main.py
    
    
-   Navigate to `http://localhost:8000` in browser
+   Navigate to `http://localhost:3000` in browser
 
 ## 🧪 Testing
 
@@ -84,17 +84,7 @@ cd backend && python -m pytest tests/ -v
 cd backend && python -m pytest tests/ --cov=src --cov-report=html
 
 # Run specific test file
-python -m pytest tests/test_api_endpoints.py -v
-
-
-### Frontend Tests
-```bash
-# Run frontend unit tests
-npm run test:frontend
-
-# Run with coverage
-npm run test:frontend -- --coverage
-
+cd backend && python -m pytest tests/test_api_endpoints.py -v
 
 ### All Tests
 ```bash
@@ -432,14 +422,12 @@ Modify settings in JavaScript files:
 
 ### Common Issues
 
-1. **Backend Connection Failed**:
-   - Ensure backend runs on `localhost:8000`
-   - Check `python start_backend.py` or `python start_server.py`
+1. **Connection Failed**:
+   - Check `python start_server.py`
    - Verify dependencies: `pip install -r backend/requirements.txt`
 
 2. **Tests Not Running**:
-   - Backend: `pip install pytest pytest-asyncio httpx`
-   - Frontend: `npm install` for Jest dependencies
+   - `pip install pytest pytest-asyncio httpx`
    - Run from correct directory (backend for Python, root for npm)
 
 3. **Graph Not Displaying**:
@@ -539,32 +527,3 @@ openspec/
 ## 📄 License
 
 This project is licensed under MIT License.
-
-## 🤝 Contributing
-
-We welcome contributions! The project uses OpenSpec for specifications and OpenCode for AI-assisted development.
-
-### Development Process
-1. **Read AGENTS.md**: Understand AI assistant instructions and project context
-2. **Use OpenSpec**: Create specifications for new features in `openspec/specs/`
-3. **AI-Assisted Development**: Leverage OpenCode for intelligent code generation
-4. **Testing First**: Ensure comprehensive test coverage for all changes
-5. **Documentation**: Keep README.md and project.md synchronized
-
-### Contribution Guidelines
-- **OpenSpec-First**: Create specifications before implementing features
-- **Test-Driven**: Maintain high test coverage (target: >80%)
-- **Security-Conscious**: Follow security patterns already established
-- **Performance-Aware**: Consider impact on computation and rendering
-- **Documentation**: Update docs for any API or functionality changes
-
-### Code Quality Standards
-- **Follow Existing Patterns**: Use established conventions and patterns
-- **Test Coverage**: Ensure new code is thoroughly tested
-- **Code Review**: Leverage AI-assisted code review capabilities
-- **Documentation**: Update relevant documentation sections
-
-### Range System Requirements
-- **Computation Range**: Always use [-30, 30] for backend processing
-- **Display Range**: Default to [-10, 10] with toggle capability
-- **Consistency**: Ensure dual-range system works across all features

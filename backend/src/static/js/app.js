@@ -1,12 +1,9 @@
 // Main Application Controller
 class GrapherApp {
-constructor() {
+    constructor() {
         this.graphRenderer = new GraphRenderer('graph');
         this.currentExpression = '';
-        this.currentVariables = [];
         this.currentParameters = {};
-        this.debounceTimer = null;
-        this.isBackendAvailable = false;
         
         // Plot management
         this.plots = [];
@@ -32,20 +29,6 @@ constructor() {
         this.initialize();
     }
 
-    // Helper method to normalize mathematical expressions
-    normalizeExpression(expression) {
-        return expression.toLowerCase()
-            .replace(/sin/g, 'Math.sin')
-            .replace(/cos/g, 'Math.cos')
-            .replace(/tan/g, 'Math.tan')
-            .replace(/sqrt/g, 'Math.sqrt')
-            .replace(/log/g, 'Math.log')
-            .replace(/exp/g, 'Math.exp')
-            .replace(/pi/g, 'Math.PI')
-            .replace(/e/g, 'Math.E')
-            .replace(/\^/g, '**');
-    }
-
     async initialize() {
         // Setup event listeners
         this.setupEventListeners();
@@ -54,7 +37,7 @@ constructor() {
         await this.checkBackendAvailability();
         
         // Initialize with default expression
-        this.validateAndParseExpression(document.getElementById('expression').value);
+        await this.validateAndParseExpression(document.getElementById('expression').value);
         
         // Initial render of plot list
         this.renderPlotList();
@@ -62,7 +45,7 @@ constructor() {
         console.log('Grapher app initialized');
     }
 
-setupEventListeners() {
+    setupEventListeners() {
         const expressionInput = document.getElementById('expression');
         const plotButton = document.getElementById('plot-btn');
         const toggleGridButton = document.getElementById('toggle-grid-btn');
@@ -130,25 +113,15 @@ setupEventListeners() {
         });
     }
 
-    debounceExpressionValidation(expression) {
-        clearTimeout(this.debounceTimer);
-        this.debounceTimer = setTimeout(() => {
-            this.validateAndParseExpression(expression);
-        }, 300);
-    }
-
-async validateAndParseExpression(expression) {
+    async validateAndParseExpression(expression) {
         try {
             const result = await apiClient.parseExpression(expression);
             
             if (result.is_valid) {
                 this.currentExpression = expression;
                 this.currentVariables = result.variables;
-                this.currentExpressionType = result.expression_type || 'explicit';
                 this.currentParameters = result.parameters || {};
                 this.showValidationSuccess();
-
-                this.updateExpressionTypeDisplay(result);
             } else {
                 this.showValidationError(result.error);
             }
@@ -161,76 +134,7 @@ async validateAndParseExpression(expression) {
         }
     }
 
-    updateExpressionTypeDisplay(parseResult) {
-        const typeDisplay = document.createElement('div');
-        typeDisplay.className = 'expression-type-info';
-        typeDisplay.style.cssText = `
-            margin-top: 5px;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 12px;
-            background: ${getTypeColor(parseResult.expression_type)}20;
-            color: ${getTypeColor(parseResult.expression_type)};
-            border: 1px solid ${getTypeColor(parseResult.expression_type)}40;
-        `;
-        
-        const typeLabels = {
-            'explicit': 'Function: y = f(x)',
-            'implicit': 'Implicit Equation: f(x, y) = 0',
-            'parametric': 'Parametric: (x(t), y(t))'
-        };
-        
-        typeDisplay.textContent = typeLabels[parseResult.expression_type] || 'Mathematical Expression';
-        
-        // Remove existing type display
-        const existing = document.querySelector('.expression-type-info');
-        if (existing) {
-            existing.remove();
-        }
-        
-        // Add new type display
-        const inputGroup = document.querySelector('.input-group');
-        inputGroup.appendChild(typeDisplay);
-    }
-
-
-
-        
-
-    validateExpressionLocally(expression) {
-        // Simple client-side validation as fallback
-        const inputElement = document.getElementById('expression');
-        const plotButton = document.getElementById('plot-btn');
-
-        try {
-            // Basic syntax check using Function constructor (safer than eval)
-            // This is a simplified check - backend validation is preferred
-            const testExpr = this.normalizeExpression(expression);
-
-            // Extract variables (simple pattern matching)
-            const variablePattern = /\\b[a-zA-Z][a-zA-Z0-9]*\\b/g;
-            const matches = testExpr.match(variablePattern) || [];
-            const variables = [...new Set(matches)].filter(v => 
-                !['Math', 'sin', 'cos', 'tan', 'sqrt', 'log', 'exp', 'PI', 'E'].includes(v)
-            );
-
-            // Test with x=1
-            const testFunc = new Function('x', ...variables, `return ${testExpr}`);
-            testFunc(1, ...variables.map(() => 1));
-
-            this.setValidationState('valid', 'Valid expression (offline mode)');
-            this.currentExpression = expression;
-            this.currentVariables = variables;
-
-            plotButton.disabled = false;
-        } catch (error) {
-            this.setValidationState('invalid', 'Invalid expression syntax');
-
-            plotButton.disabled = true;
-        }
-    }
-
-showValidationSuccess(message = 'Valid expression') {
+    showValidationSuccess(message = 'Valid expression') {
         this.setValidationState('valid', message);
     }
     
@@ -259,7 +163,7 @@ showValidationSuccess(message = 'Valid expression') {
         }
     }
 
-async plotFunction() {
+    async plotFunction() {
         const expressionInput = document.getElementById('expression');
         const validationMessage= document.getElementById('validation-message');
 
@@ -310,65 +214,6 @@ async plotFunction() {
             plotButton.textContent = originalText;
         }
     }
-
-        
-
-    async plotWithBackend() {
-        // Ensure we have valid parameters (object, not array)
-        const parameters = (this.currentParameters && typeof this.currentParameters === 'object' && !Array.isArray(this.currentParameters)) ? 
-                          this.currentParameters : {};
-        
-        const xRange = [-30, 30]; // Use computation range
-        
-        const result = await apiClient.evaluateExpression(
-            this.currentExpression,
-            parameters,
-            xRange,
-            1000
-        );
-
-        if (result.graph_data && result.graph_data.coordinates) {
-            this.graphRenderer.plotFunction(
-                this.currentExpression,
-                result.graph_data.coordinates,
-                0 // Use first color
-            );
-        } else {
-            throw new Error('Invalid response from backend');
-        }
-    }
-
-    async plotLocally() {
-        // Fallback local plotting (simplified - for demonstration only)
-        const coordinates = [];
-        for (let x = -5; x <= 5; x += 0.01) {
-            try {
-                const y = this.evaluateExpressionLocally(x);
-                coordinates.push({ x, y });
-            } catch (error) {
-                // Skip invalid points
-            }
-        }
-
-        if (coordinates.length > 0) {
-            this.graphRenderer.plotFunction(
-                this.currentExpression,
-                coordinates,
-                0
-            );
-        } else {
-            throw new Error('No valid points to plot');
-        }
-    }
-
-    evaluateExpressionLocally(x) {
-        const expr = this.normalizeExpression(this.currentExpression);
-
-        const func = new Function('x', `return ${expr}`);
-        return func(x);
-    }
-
-
 
     async checkBackendAvailability() {
         try {
@@ -470,26 +315,6 @@ async plotFunction() {
         }
     }
 
-    // Mobile-friendly error handling
-    showMobileError(message) {
-        if (!this.isMobile) {
-            this.showError(message);
-            return;
-        }
-        
-        // Use mobile-optimized error display
-        const errorContainer = document.getElementById('error-container');
-        errorContainer.innerHTML = `
-            <div class="mobile-error">
-                <div class="mobile-error-content">
-                    <span class="error-icon">⚠️</span>
-                    <span class="error-text">${message}</span>
-                </div>
-                <button class="error-dismiss" onclick="this.parentElement.innerHTML=''">✕</button>
-            </div>
-        `;
-    }
-
     showWarning(message) {
         const errorContainer = document.getElementById('error-container');
         errorContainer.innerHTML = `<div class="warning" style="background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">${message}</div>`;
@@ -511,17 +336,6 @@ async plotFunction() {
         }
     }
 
-    // Public methods for external control
-    setExpression(expression) {
-        document.getElementById('expression').value = expression;
-        this.validateAndParseExpression(expression);
-    }
-
-plotExpression(expression) {
-        this.setExpression(expression);
-        this.plotFunction();
-    }
-
     toggleRange() {
         // Switch between ranges
         this.currentRange = this.currentRange === 'small' ? 'large' : 'small';
@@ -529,128 +343,6 @@ plotExpression(expression) {
         
         // Update graph renderer with new range (scales handle the rest)
         this.graphRenderer.updateRange(range.x, range.y);
-    }
-
-    replotAllFunctions() {
-        // Clear and redraw all functions with new range
-        this.graphRenderer.clearAllFunctions();
-        this.plots.forEach(plot => {
-            if (plot.data) {
-                const colorIndex = this.plots.indexOf(plot);
-                this.graphRenderer.plotFunction(plot.expression, plot.data, colorIndex);
-            }
-        });
-    }
-
-
-
-    normalizeExpression(expression) {
-        // Normalize expression by removing spaces and converting to lowercase
-        let normalized = expression.toLowerCase().replace(/\s+/g, '');
-        
-        // Replace common mathematical operators and constants first
-        normalized = normalized
-            .replace(/\^/g, '**') // Convert ^ to ** for power
-            .replace(/pi/g, 'math.pi')
-            .replace(/e(?![a-z])/g, 'math.e'); // Only replace standalone 'e'
-        
-        // Handle function calls first to protect them from multiplication logic
-        const functionData = this.preserveFunctionCalls(normalized);
-        normalized = functionData.expr;
-        
-        // Add explicit multiplication for implied multiplication (e.g., "2x" -> "2*x")
-        normalized = this.addExplicitMultiplication(normalized);
-        
-        // Restore function calls
-        normalized = this.restoreFunctionCalls(normalized, functionData.placeholders);
-        
-        // Sort multiplication terms
-        normalized = this.sortMultiplicationTerms(normalized);
-        
-        return normalized;
-    }
-
-    preserveFunctionCalls(expr) {
-        // Replace function calls with placeholders to protect them
-        const placeholders = [];
-        let placeholderIndex = 0;
-        
-        const processedExpr = expr.replace(/(sin|cos|tan|sqrt|log|exp)\s*\([^)]+\)/g, (match) => {
-            const placeholder = `__FUNC_${placeholderIndex}__`;
-            placeholders[placeholderIndex] = match;
-            placeholderIndex++;
-            return placeholder;
-        });
-        
-        return { expr: processedExpr, placeholders };
-    }
-
-    restoreFunctionCalls(expr, placeholders = null) {
-        // Restore function calls from placeholders
-        const placeholdersToUse = placeholders || this.functionPlaceholders;
-        if (!placeholdersToUse) return expr;
-        
-        placeholdersToUse.forEach((funcCall, index) => {
-            const placeholder = `__FUNC_${index}__`;
-            // Simple string replacement since placeholders are unique
-            expr = expr.split(placeholder).join(funcCall);
-        });
-        
-        return expr;
-    }
-
-    addExplicitMultiplication(expr) {
-        // Add explicit multiplication for cases like "2x", "x2", etc.
-        // Skip placeholders (function calls)
-        return expr
-            // Number followed by variable: "2x" -> "2*x"
-            .replace(/(\d)([a-z])/g, '$1*$2')
-            // Variable followed by number: "x2" -> "x*2"
-            .replace(/([a-z])(\d)/g, '$1*$2')
-            // Variable followed by function (but not placeholders): "xsin" -> "x*sin"
-            .replace(/([a-z])(sin|cos|tan|sqrt|log|exp)(?!__)/g, '$1*$2')
-            // Variable followed by parenthesis (but not placeholders): "x(" -> "x*("
-            .replace(/([a-z])(?!\w*__\s*)\(/g, '$1*(')
-            // Parenthesis followed by variable: ")x" -> ")*x"
-            .replace(/\)([a-z])/g, ')*$1')
-            // Number followed by parenthesis: "2(" -> "2*("
-            .replace(/(\d)\(/g, '$1*(')
-            // Parenthesis followed by number: ")2" -> ")*2"
-            .replace(/\)(\d)/g, ')*$1');
-    }
-
-    sortMultiplicationTerms(expr) {
-        // Sort multiplication terms to handle commutative property
-        // This is a simplified approach for basic cases
-        
-        const sortMultiplicationChain = (chain) => {
-            const terms = chain.split('*');
-            const sorted = terms.sort((a, b) => {
-                const aIsNumber = /^\d+(\.\d+)?$/.test(a);
-                const bIsNumber = /^\d+(\.\d+)?$/.test(b);
-                const aIsConstant = /^(math\.pi|math\.e)$/.test(a);
-                const bIsConstant = /^(math\.pi|math\.e)$/.test(b);
-                
-                // Order: numbers, constants, variables, functions
-                if (aIsNumber && !bIsNumber) return -1;
-                if (!aIsNumber && bIsNumber) return 1;
-                if (aIsConstant && !bIsConstant) return -1;
-                if (!aIsConstant && bIsConstant) return 1;
-                if (a.startsWith('math.') && !b.startsWith('math.')) return 1;
-                if (!a.startsWith('math.') && b.startsWith('math.')) return -1;
-                return a.localeCompare(b);
-            });
-            return sorted.join('*');
-        };
-
-        // Find and sort multiplication chains
-        return expr.replace(/([a-z0-9.]+(?:\*\*[0-9.]+)?|\([^)]+\)(?:\*\*[0-9.]+)?)(?:\*([a-z0-9.]+(?:\*\*[0-9.]+)?|\([^)]+\)(?:\*\*[0-9.]+)?))*/g, sortMultiplicationChain);
-    }
-
-    areExpressionsEquivalent(expr1, expr2) {
-        const norm1 = this.normalizeExpression(expr1);
-        const norm2 = this.normalizeExpression(expr2);
-        return norm1 === norm2;
     }
 
     async addPlot(expression) {
@@ -862,17 +554,6 @@ plotExpression(expression) {
 document.addEventListener('DOMContentLoaded', () => {
     window.grapherApp = new GrapherApp();
 });
-
-// Helper function for expression type colors
-function getTypeColor(type) {
-    const colors = {
-        'explicit': '#8b5cf6',      // Purple
-        'implicit': '#10b981',      // Green  
-        'parametric': '#f59e0b',    // Orange
-        'error': '#ef4444'          // Red
-    };
-    return colors[type] || '#6b7280';  // Gray default
-}
 
 // Global error handling
 window.addEventListener('error', (event) => {

@@ -65,26 +65,8 @@ class ApiClient {
         });
     }
 
-    async updateParameters(expression, variables, xRange = [-30, 30]) {
-        return this.makeRequest('/api/update-params', 'POST', {
-            expression,
-            variables,
-            x_range: xRange
-        });
-    }
-
     async healthCheck() {
         return this.makeRequest('/api/health');
-    }
-
-    async evaluateParametric(xExpression, yExpression, variables = {}, tRange = [0, 2*Math.PI], numPoints = 1000) {
-        return this.makeRequest('/api/parametric', 'POST', {
-            x_expression: xExpression,
-            y_expression: yExpression,
-            variables: variables,
-            t_range: tRange,
-            num_points: numPoints
-        });
     }
 
     // Debounced parameter update for real-time updates
@@ -123,32 +105,6 @@ class ApiClient {
                 }
             }, delay);
         };
-    }
-
-    // Batch multiple requests efficiently
-    async batchRequest(requests) {
-        const promises = requests.map(request => {
-            const { endpoint, method = 'GET', data } = request;
-            return this.makeRequest(endpoint, method, data);
-        });
-
-        try {
-            return await Promise.all(promises);
-        } catch (error) {
-            // If any request fails, return the partial results with errors
-            const results = await Promise.allSettled(promises);
-            return results.map(result => {
-                if (result.status === 'fulfilled') {
-                    return { success: true, data: result.value };
-                } else {
-                    return { 
-                        success: false, 
-                        error: result.reason.message || 'Unknown error',
-                        status: result.reason.status || 0
-                    };
-                }
-            });
-        }
     }
 }
 

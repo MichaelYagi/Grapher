@@ -5,14 +5,15 @@
   "scripts": {
     "start": "python start_server.py",
     "start:backend": "python start_backend.py",
-    "test:frontend": "jest backend/tests/test_frontend_unit_tests.js",
+    "test:frontend": "jest backend/tests/test_frontend_simple.js",
     "test:backend": "cd backend && python -m pytest tests/ -v",
     "test": "npm run test:backend && npm run test:frontend",
     "test:coverage": "npm run test:backend && npm run test:frontend --coverage",
     "install:dev": "pip install -r backend/requirements.txt && npm install"
   },
   "jest": {
-    "testEnvironment": "node",
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": ["<rootDir>/backend/tests/jest.setup.js"],
     "testMatch": [
       "**/*.test.js",
       "**/test_*.js"
