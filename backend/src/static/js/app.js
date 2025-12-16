@@ -293,7 +293,15 @@ async plotFunction() {
             await this.addPlot(this.currentExpression);
         } catch (error) {
             console.error('Plotting error:', error);
-            this.showError(`Plotting failed: ${error.message}`);
+            let errorMessage = error.message;
+            if (error.message === "iteration over a 0-d array") {
+                errorMessage = "Invalid expression";
+            }
+
+            this.showError(`Plotting failed: ${errorMessage}`);
+            expressionInput.classList.remove('valid');
+            expressionInput.classList.add('invalid');
+            validationMessage.textContent = errorMessage;
         } finally {
             plotButton.disabled = false;
             plotButton.textContent = originalText;
