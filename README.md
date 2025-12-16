@@ -25,26 +25,30 @@ A web-based mathematical function plotting tool with Python backend and D3.js fr
 - **📊 Multi-function Support**: Plot and manage multiple functions simultaneously
 - **💾 Export Functionality**: Download graphs as PNG or SVG
 
-## 🚀 Quick Start (2 commands)
+## 🚀 Quick Start (1 command!)
 
 ### Linux/Mac:
 ```bash
-./quick-setup.sh
-./start_grapher.sh
+./start.sh
 ```
 
 ### Windows:
 ```bash
-setup.bat
-start_grapher.bat
-```
-
-### Verify Setup:
-```bash
-./verify-setup.sh  # Optional: Check if everything is working
+start.bat
 ```
 
 That's it! The app will be running at http://localhost:3000
+
+## 📋 What this command does:
+- Installs dependencies automatically (system-wide if needed)
+- Starts the server immediately
+- Works even in managed environments
+
+### If you want virtual environment (optional):
+```bash
+./quick-setup.sh  # Creates venv
+./start_grapher.sh  # Uses venv
+```
 
 ## 📋 What these commands do:
 

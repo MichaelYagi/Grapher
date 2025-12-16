@@ -10,7 +10,14 @@ if [ ! -d "venv" ]; then
 fi
 
 # Activate venv
-source venv/bin/activate
+if [ -f "venv/bin/activate" ]; then
+    source venv/bin/activate
+elif [ -f "venv/Scripts/activate" ]; then
+    source venv/Scripts/activate
+else
+    echo "❌ Virtual environment activation not found"
+    exit 1
+fi
 
 # Check if dependencies are installed
 if ! python -c "import fastapi, uvicorn, numpy, scipy" 2>/dev/null; then
