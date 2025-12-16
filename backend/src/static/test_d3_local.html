@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D3.js Local Test</title>
+    <script src="static/js/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>D3.js Local Test</h1>
+    <div id="test-container"></div>
+    <script>
+        // Test D3.js functionality
+        if (typeof d3 !== 'undefined') {
+            console.log('✅ D3.js loaded successfully from local file');
+            console.log('D3 version:', d3.version);
+            
+            // Test basic D3 functionality
+            const svg = d3.select('#test-container')
+                .append('svg')
+                .attr('width', 200)
+                .attr('height', 200);
+            
+            svg.append('circle')
+                .attr('cx', 100)
+                .attr('cy', 100)
+                .attr('r', 50)
+                .attr('fill', 'steelblue');
+            
+            console.log('✅ D3.js basic functionality test passed');
+        } else {
+            console.error('❌ D3.js failed to load');
+        }
+    </script>
+</body>
+</html>
