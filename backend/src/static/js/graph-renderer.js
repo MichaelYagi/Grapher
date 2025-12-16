@@ -167,7 +167,13 @@ renderGrid() {
         // X-axis
         const xAxisBottom = d3.axisBottom(this.xScale)
             .ticks(21) // -10 to 10 inclusive
-            .tickFormat(d3.format('d'));
+            .tickSize(0) // Remove ticks
+            .tickFormat(d => {
+                if (d === 0) {
+                    return '            0'; // Add more spaces to shift 0 further right
+                }
+                return d3.format('d')(d);
+            });
 
         this.xAxis
             .call(xAxisBottom)
@@ -178,7 +184,8 @@ renderGrid() {
         this.xAxis
             .selectAll('text')
             .style('fill', this.options.axisColors.text)
-            .style('font-size', '12px');
+            .style('font-size', '12px')
+            .style('transform', d => d === 0 ? 'translate(5px,0)' : 'none');
 
         // Main x-axis line (y=0)
         this.mainGroup
@@ -194,6 +201,7 @@ renderGrid() {
         // Y-axis
         const yAxisLeft = d3.axisLeft(this.yScale)
             .ticks(21) // -10 to 10 inclusive
+            .tickSize(0) // Remove ticks
             .tickFormat(d => d === 0 ? '' : d3.format('d')(d));
 
         this.yAxis
