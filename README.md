@@ -40,9 +40,11 @@ start.bat
 That's it! The app will be running at http://localhost:3000
 
 ## 📋 What this command does:
-- Installs dependencies automatically (system-wide if needed)
-- Starts the server immediately
-- Works even in managed environments
+- Installs dependencies automatically (handles managed environments)
+- Starts server immediately
+- Works in any Python environment (Linux, Mac, Windows)
+
+**Note**: If you see "externally-managed-environment" message, that's normal! The script handles it automatically.
 
 ### If you want virtual environment (optional):
 ```bash

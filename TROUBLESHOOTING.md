@@ -12,6 +12,28 @@
 chmod +x setup.sh start_grapher.sh
 ```
 
+### "externally-managed-environment" error
+This is normal on modern Linux systems. The script handles it automatically:
+
+**Option 1 - Let script handle it** (recommended):
+- The script will use `--break-system-packages` automatically
+- This is safe for application-specific packages
+
+**Option 2 - Manual install with override**:
+```bash
+pip3 install --break-system-packages fastapi uvicorn python-dotenv numpy scipy pydantic-settings numexpr
+```
+
+**Option 3 - Use user install**:
+```bash
+pip3 install --user fastapi uvicorn python-dotenv numpy scipy pydantic-settings numexpr
+```
+
+**Option 4 - System packages** (Ubuntu/Debian):
+```bash
+sudo apt install python3-fastapi python3-uvicorn python3-numpy python3-scipy
+```
+
 ### "pip install fails"
 **Option 1 - Use user install**:
 ```bash
