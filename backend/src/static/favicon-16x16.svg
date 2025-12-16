@@ -1,0 +1,27 @@
+<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient16" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="16" height="16" rx="3" fill="url(#bgGradient16)"/>
+  
+  <!-- Axes -->
+  <g stroke="white" stroke-width="1" stroke-linecap="round">
+    <line x1="2" y1="8" x2="14" y2="8"/>
+    <line x1="8" y1="2" x2="8" y2="14"/>
+  </g>
+  
+  <!-- Function curve -->
+  <path d="M 3,12 Q 8,4 13,12" 
+        stroke="#10b981" 
+        stroke-width="1.5" 
+        fill="none"
+        stroke-linecap="round"/>
+  
+  <!-- Center point -->
+  <circle cx="8" cy="6" r="0.8" fill="#f59e0b"/>
+</svg>

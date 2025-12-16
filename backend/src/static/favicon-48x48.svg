@@ -1,0 +1,58 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="graphGradient48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="48" height="48" rx="8" fill="url(#bgGradient48)"/>
+  
+  <!-- Grid lines -->
+  <g stroke="white" stroke-width="0.5" opacity="0.2">
+    <line x1="12" y1="24" x2="36" y2="24"/>
+    <line x1="24" y1="12" x2="24" y2="36"/>
+    <line x1="15" y1="15" x2="33" y2="33" stroke-dasharray="2,2"/>
+    <line x1="33" y1="15" x2="15" y2="33" stroke-dasharray="2,2"/>
+  </g>
+  
+  <!-- Multiple function curves -->
+  <path d="M 8,36 Q 24,12 40,36" 
+        stroke="url(#graphGradient48)" 
+        stroke-width="3" 
+        fill="none"
+        stroke-linecap="round"/>
+  
+  <path d="M 8,20 Q 24,8 40,20" 
+        stroke="#ef4444" 
+        stroke-width="2" 
+        fill="none"
+        stroke-linecap="round"
+        opacity="0.8"/>
+  
+  <!-- Coordinate axes -->
+  <g stroke="white" stroke-width="2" stroke-linecap="round">
+    <line x1="6" y1="24" x2="42" y2="24"/>
+    <line x1="24" y1="6" x2="24" y2="42"/>
+    
+    <!-- Arrow heads -->
+    <path d="M 39,21 L 42,24 L 39,27" fill="none" stroke-linejoin="round"/>
+    <path d="M 21,9 L 24,6 L 27,9" fill="none" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Data points -->
+  <g fill="#f59e0b">
+    <circle cx="15" cy="30" r="1.5"/>
+    <circle cx="24" cy="18" r="1.5"/>
+    <circle cx="33" cy="30" r="1.5"/>
+  </g>
+  
+  <!-- Mathematical symbol (integral sign) -->
+  <text x="38" y="12" font-family="serif" font-size="8" fill="white" opacity="0.7" font-weight="bold">∫</text>
+</svg>
