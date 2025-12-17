@@ -425,6 +425,9 @@ renderGrid() {
         // Remove existing function with same expression if it exists
         this.removeFunction(expression);
 
+        // Process coordinates to detect and break at asymptotes
+        const processedCoordinates = this.breakAtAsymptotes(coordinates);
+
         // Create line generator
         const line = d3.line()
             .x(d => this.xScale(d.x))
@@ -432,12 +435,12 @@ renderGrid() {
             .defined(d => !isNaN(d.y) && isFinite(d.y));
 
 // Add the function to our tracking array
-        this.functions.push({ expression, color, element: null, coordinates: coordinates });
+        this.functions.push({ expression, color, element: null, coordinates: processedCoordinates });
 
         // Draw the function curve
         const path = this.functionsGroup
             .append('path')
-            .datum(coordinates)
+            .datum(processedCoordinates)
             .attr('class', `function-${this.functions.length - 1}`)
             .attr('d', line)
             .style('fill', 'none')
@@ -450,7 +453,33 @@ renderGrid() {
         this.functions[this.functions.length - 1].element = path;
 
         // Add hover interactions
-        this.addInteractions(expression, coordinates, color);
+        this.addInteractions(expression, processedCoordinates, color);
+    }
+
+    breakAtAsymptotes(coordinates) {
+        if (!coordinates || coordinates.length < 2) return coordinates;
+        
+        const processed = [];
+        const jumpThreshold = 50; // Threshold for detecting large jumps
+        
+        for (let i = 0; i < coordinates.length; i++) {
+            const coord = coordinates[i];
+            
+            // Check for large jump from previous point (indicating asymptote)
+            if (i > 0) {
+                const prevCoord = coordinates[i - 1];
+                const yDiff = Math.abs(coord.y - prevCoord.y);
+                
+                // If there's a large jump, insert NaN to break the line
+                if (yDiff > jumpThreshold) {
+                    processed.push({ x: NaN, y: NaN });
+                }
+            }
+            
+            processed.push(coord);
+        }
+        
+        return processed;
     }
 
     addInteractions(expression, coordinates, color) {

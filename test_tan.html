@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tan Graph Test</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>Test Tan(x) Graph - Should have no vertical lines at asymptotes</h1>
+    <div id="graph"></div>
+    
+    <script>
+        async function testTan() {
+            try {
+                const response = await fetch('http://127.0.0.1:3000/api/evaluate', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        expression: 'tan(x)',
+                        x_range: [-10, 10],
+                        num_points: 100
+                    })
+                });
+                
+                const data = await response.json();
+                const coords = data.graph_data.coordinates;
+                
+                console.log('Total coordinates:', coords.length);
+                const breakPoints = coords.filter(c => c.x === null);
+                console.log('Break points:', breakPoints.length);
+                
+                // Draw simple graph
+                const margin = {top: 20, right: 30, bottom: 40, left: 50};
+                const width = 600 - margin.left - margin.right;
+                const height = 400 - margin.top - margin.bottom;
+                
+                const svg = d3.select('#graph').append('svg')
+                    .attr('width', width + margin.left + margin.right)
+                    .attr('height', height + margin.top + margin.bottom)
+                    .append('g')
+                    .attr('transform', `translate(${margin.left},${margin.top})`);
+                
+                const xScale = d3.scaleLinear().domain([-10, 10]).range([0, width]);
+                const yScale = d3.scaleLinear().domain([-10, 10]).range([height, 0]);
+                
+                // Add axes
+                svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(xScale));
+                svg.append('g').call(d3.axisLeft(yScale));
+                
+                // Draw the line with break point handling
+                const line = d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                    .defined(d => d !== null && d.x !== null && d.y !== null && !isNaN(d.y) && isFinite(d.y));
+                
+                svg.append('path')
+                    .datum(coords)
+                    .attr('fill', 'none')
+                    .attr('stroke', 'blue')
+                    .attr('stroke-width', 2)
+                    .attr('d', line);
+                
+                console.log('Graph rendered!');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.body.innerHTML += `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        testTan();
+    </script>
+</body>
+</html>
