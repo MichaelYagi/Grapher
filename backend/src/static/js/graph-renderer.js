@@ -460,8 +460,8 @@ renderGrid() {
         if (!coordinates || coordinates.length < 2) return coordinates;
         
         const processed = [];
-        const jumpThreshold = 50; // Threshold for detecting large jumps
-        
+        const jumpThreshold = 60; // Threshold for detecting large jumps
+
         for (let i = 0; i < coordinates.length; i++) {
             const coord = coordinates[i];
             
@@ -469,7 +469,6 @@ renderGrid() {
             if (i > 0) {
                 const prevCoord = coordinates[i - 1];
                 const yDiff = Math.abs(coord.y - prevCoord.y);
-                
                 // If there's a large jump, insert NaN to break the line
                 if (yDiff > jumpThreshold) {
                     processed.push({ x: NaN, y: NaN });
