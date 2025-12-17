@@ -108,9 +108,9 @@ class GrapherApp {
 
 
         // Window resize
-        window.addEventListener('resize', () => {
-            this.handleResize();
-        });
+        // window.addEventListener('resize', () => {
+        //     this.handleResize();
+        // });
     }
 
     async validateAndParseExpression(expression) {
@@ -242,9 +242,9 @@ class GrapherApp {
         this.isSmallMobile = window.innerWidth <= 480;
         
         if (this.isMobile) {
-            this.setupMobileUI();
-            this.setupMobileKeyboardHandling();
-            this.setupMobileTouchOptimizations();
+            // this.setupMobileUI();
+            // this.setupMobileKeyboardHandling();
+            // this.setupMobileTouchOptimizations();
         }
     }
 

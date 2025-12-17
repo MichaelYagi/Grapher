@@ -111,9 +111,9 @@ class GraphRenderer {
         };
 
         // Add touch event listeners
-        svg.addEventListener('touchstart', handleTouchStart, { passive: false });
-        svg.addEventListener('touchmove', handleTouchMove, { passive: false });
-        svg.addEventListener('touchend', handleTouchEnd);
+        // svg.addEventListener('touchstart', handleTouchStart, { passive: false });
+        // svg.addEventListener('touchmove', handleTouchMove, { passive: false });
+        // svg.addEventListener('touchend', handleTouchEnd);
 
         // Pinch-to-zoom support
         let initialDistance = 0;
@@ -146,8 +146,8 @@ class GraphRenderer {
             }
         };
 
-        svg.addEventListener('touchstart', handlePinchStart, { passive: false });
-        svg.addEventListener('touchmove', handlePinchMove, { passive: false });
+        // svg.addEventListener('touchstart', handlePinchStart, { passive: false });
+        // svg.addEventListener('touchmove', handlePinchMove, { passive: false });
     }
 
     setupResizeHandler() {
@@ -169,8 +169,8 @@ class GraphRenderer {
             }, 250); // Debounce resize events
         };
 
-        window.addEventListener('resize', handleResize);
-        window.addEventListener('orientationchange', handleResize);
+        // window.addEventListener('resize', handleResize);
+        // window.addEventListener('orientationchange', handleResize);
     }
 
     getCurrentTransform() {
@@ -248,11 +248,11 @@ class GraphRenderer {
         this.interactiveGroup = this.mainGroup.append('g')
             .attr('class', 'interactive');
 
-this.renderGrid();
+    this.renderGrid();
         this.renderAxes();
     }
 
-updateRange(xRange, yRange) {
+    updateRange(xRange, yRange) {
         // Update options with new ranges
         this.options.xRange = xRange;
         this.options.yRange = yRange;
