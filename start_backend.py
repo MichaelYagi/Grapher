@@ -72,7 +72,7 @@ def start_backend():
 def main():
     """Main setup and start script"""
     print("=" * 60)
-    print("🎯 GRAPHER BACKEND SERVER SETUP")
+    print("GRAPHER BACKEND SERVER SETUP")
     print("=" * 60)
     
     # Check if we're in the right directory

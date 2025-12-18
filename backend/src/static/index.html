@@ -11,6 +11,7 @@
     <link rel="icon" type="image/svg+xml" href="static/favicon-48x48.svg" sizes="48x48">
     
     <script src="static/js/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -655,6 +656,15 @@
         
         <div class="main-content">
             <div class="sidebar">
+                 <div class="input-group">
+                    <label for="graph-type">Graph Type</label>
+                    <select id="graph-type" class="expression-input">
+                        <option value="2d">2D Function</option>
+                        <option value="surface-3d">3D Surface</option>
+                        <option value="parametric-3d">3D Parametric</option>
+                    </select>
+                </div>
+
                 <div class="input-group">
                     <label for="expression">Mathematical Expression</label>
                     <input 
@@ -666,7 +676,48 @@
                     >
                     <div id="validation-message"></div>
                 </div>
-                
+
+                <!-- 3D-specific inputs -->
+                <div id="surface-inputs" class="input-group" style="display: none;">
+                    <label for="surface-expression">Surface Expression z = f(x, y)</label>
+                    <input 
+                        type="text" 
+                        id="surface-expression" 
+                        class="expression-input" 
+                        placeholder="e.g., x^2 + y^2"
+                        value="x^2 + y^2"
+                    >
+                </div>
+
+                <div id="parametric-inputs" class="input-group" style="display: none;">
+                    <label for="parametric-x">X Expression x(u, v)</label>
+                    <input 
+                        type="text" 
+                        id="parametric-x" 
+                        class="expression-input" 
+                        placeholder="e.g., cos(u) * sin(v)"
+                        value="cos(u) * sin(v)"
+                    >
+                    
+                    <label for="parametric-y" style="margin-top: 10px;">Y Expression y(u, v)</label>
+                    <input 
+                        type="text" 
+                        id="parametric-y" 
+                        class="expression-input" 
+                        placeholder="e.g., sin(u) * sin(v)"
+                        value="sin(u) * sin(v)"
+                    >
+                    
+                    <label for="parametric-z" style="margin-top: 10px;">Z Expression z(u, v)</label>
+                    <input 
+                        type="text" 
+                        id="parametric-z" 
+                        class="expression-input" 
+                        placeholder="e.g., cos(v)"
+                        value="cos(v)"
+                    >
+                </div>
+
                 <div class="input-group">
                     <button id="plot-btn" class="btn">Plot Function</button>
                 </div>
@@ -685,14 +736,26 @@
                 </div>
             </div>
             
-            <div class="graph-container">
-<div class="graph-controls">
+             <div class="graph-container">
+                <div id="2d-controls" class="graph-controls">
                     <button id="toggle-grid-btn">Toggle Grid</button>
                     <button id="toggle-range-btn">Toggle Range</button>
                     <button id="download-png-btn">Download PNG</button>
                     <button id="download-svg-btn">Download SVG</button>
                 </div>
-                <svg id="graph" width="600" height="600"></svg>
+                
+                <div id="3d-controls" class="graph-controls" style="display: none;">
+                    <button id="reset-view-btn">Reset View</button>
+                    <button id="toggle-rotation-btn">Toggle Rotation</button>
+                    <button id="download-3d-btn">Download 3D</button>
+                </div>
+                
+                <div id="graph-2d">
+                    <svg id="graph" width="600" height="600"></svg>
+                </div>
+                
+                <div id="graph-3d" style="display: none; width: 100%; height: 600px;"></div>
+                
                 <div id="error-container"></div>
             </div>
         </div>
@@ -700,6 +763,7 @@
 
     <script src="/static/js/api-client.js"></script>
     <script src="/static/js/graph-renderer.js"></script>
+    <script src="/static/js/graph-renderer-3d.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

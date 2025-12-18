@@ -8,7 +8,8 @@ from typing import List
 from backend.api.models import (
     ExpressionRequest, ParseRequest, BatchExpressionRequest, ParameterUpdateRequest,
     ParametricRequest, ParseResponse, EvaluationResponse, BatchEvaluationResponse, ErrorResponse,
-    GraphDataResponse
+    GraphDataResponse, Surface3DRequest, Parametric3DRequest, Evaluation3DResponse,
+    GraphData3DResponse, CoordinatePoint3D
 )
 from backend.core.math_engine import evaluator
 from backend.core.cache import get_cache, generate_cache_key
@@ -337,6 +338,92 @@ async def evaluate_parametric(request: ParametricRequest):
         raise HTTPException(
             status_code=400, 
             detail=str(e),
+            headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
+        )
+
+@router.post("/surface-3d", response_model=Evaluation3DResponse)
+async def evaluate_3d_surface(request: Surface3DRequest):
+    """
+    Evaluate a 3D surface z = f(x, y) and generate graph data.
+    """
+    start_time = time.time()
+    
+    try:
+        # Generate 3D surface data
+        coordinates, z_range = evaluator.evaluate_3d_surface(
+            request.expression,
+            request.x_range,
+            request.y_range,
+            request.resolution,
+            request.variables
+        )
+        
+        # Create response
+        end_time = time.time()
+        
+        return Evaluation3DResponse(
+            expression=request.expression,
+            graph_type="surface",
+            graph_data=GraphData3DResponse(
+                coordinates=[{"x": float(coord[0]), "y": float(coord[1]), "z": float(coord[2])} for coord in coordinates],
+                total_points=request.resolution * request.resolution,
+                valid_points=len([coord for coord in coordinates if not np.isnan(coord[2])]),
+                x_range=request.x_range,
+                y_range=request.y_range,
+                z_range=z_range
+            ),
+            evaluation_time_ms=(end_time - start_time) * 1000
+        )
+        
+    except Exception as e:
+        end_time = time.time()
+        raise HTTPException(
+            status_code=400, 
+            detail=f"3D surface evaluation failed: {str(e)}",
+            headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
+        )
+
+@router.post("/parametric-3d", response_model=Evaluation3DResponse)
+async def evaluate_3d_parametric(request: Parametric3DRequest):
+    """
+    Evaluate 3D parametric equations x(u, v), y(u, v), z(u, v) and generate graph data.
+    """
+    start_time = time.time()
+    
+    try:
+        # Generate 3D parametric surface data
+        coordinates, z_range = evaluator.evaluate_3d_parametric(
+            request.x_expression,
+            request.y_expression,
+            request.z_expression,
+            request.u_range,
+            request.v_range,
+            request.resolution,
+            request.variables
+        )
+        
+        # Create response
+        end_time = time.time()
+        
+        return Evaluation3DResponse(
+            expression=f"parametric: x={request.x_expression}, y={request.y_expression}, z={request.z_expression}",
+            graph_type="parametric",
+            graph_data=GraphData3DResponse(
+                coordinates=[{"x": float(coord[0]), "y": float(coord[1]), "z": float(coord[2])} for coord in coordinates],
+                total_points=request.resolution * request.resolution,
+                valid_points=len([coord for coord in coordinates if all(not np.isnan(c) for c in coord)]),
+                x_range=request.u_range,
+                y_range=request.v_range,
+                z_range=z_range
+            ),
+            evaluation_time_ms=(end_time - start_time) * 1000
+        )
+        
+    except Exception as e:
+        end_time = time.time()
+        raise HTTPException(
+            status_code=400, 
+            detail=f"3D parametric evaluation failed: {str(e)}",
             headers={"X-Evaluation-Time-ms": str((end_time - start_time) * 1000)}
         )
 

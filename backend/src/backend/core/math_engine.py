@@ -889,6 +889,106 @@ class ExpressionEvaluator:
             
         except Exception as e:
             raise ValueError(f"Failed to generate graph data: {e}")
+    
+    def evaluate_3d_surface(self, expression: str, x_range: Tuple[float, float], 
+                           y_range: Tuple[float, float], resolution: int = 50, 
+                           params: Dict[str, float] = None) -> Tuple[List[Tuple[float, float, float]], Tuple[float, float]]:
+        """
+        Evaluate 3D surface z = f(x, y)
+        Returns list of (x, y, z) coordinates and z range
+        """
+        try:
+            # Preprocess expression
+            processed_expression = self.parser.preprocess_expression(expression)
+            
+            # Create grid
+            x_values = np.linspace(x_range[0], x_range[1], resolution)
+            y_values = np.linspace(y_range[0], y_range[1], resolution)
+            X, Y = np.meshgrid(x_values, y_values)
+            
+            # Prepare evaluation context
+            context = {
+                'x': X,
+                'y': Y,
+                **MATH_FUNCTIONS,
+                **MATH_CONSTANTS,
+                **(params or {})
+            }
+            
+            # Evaluate z = f(x, y)
+            Z = ne.evaluate(self.parser.compile_expression(processed_expression), local_dict=context)
+            
+            # Handle infinite values
+            Z = np.where(np.isfinite(Z), Z, np.nan)
+            
+            # Calculate z range
+            z_min = float(np.nanmin(Z))
+            z_max = float(np.nanmax(Z))
+            
+            # Create coordinate list
+            coordinates = []
+            for i in range(resolution):
+                for j in range(resolution):
+                    x, y, z = float(X[i, j]), float(Y[i, j]), float(Z[i, j])
+                    if not np.isnan(z):
+                        coordinates.append((x, y, z))
+            
+            return coordinates, (z_min, z_max)
+            
+        except Exception as e:
+            raise ValueError(f"3D surface evaluation failed: {e}")
+    
+    def evaluate_3d_parametric(self, x_expr: str, y_expr: str, z_expr: str,
+                              u_range: Tuple[float, float], v_range: Tuple[float, float],
+                              resolution: int = 50, params: Dict[str, float] = None) -> Tuple[List[Tuple[float, float, float]], Tuple[float, float]]:
+        """
+        Evaluate 3D parametric surface x(u, v), y(u, v), z(u, v)
+        Returns list of (x, y, z) coordinates and z range
+        """
+        try:
+            # Preprocess expressions
+            x_expr = self.parser.preprocess_expression(x_expr)
+            y_expr = self.parser.preprocess_expression(y_expr)
+            z_expr = self.parser.preprocess_expression(z_expr)
+            
+            # Create parameter grid
+            u_values = np.linspace(u_range[0], u_range[1], resolution)
+            v_values = np.linspace(v_range[0], v_range[1], resolution)
+            U, V = np.meshgrid(u_values, v_values)
+            
+            # Prepare evaluation context
+            context = {
+                'u': U, 'v': V,
+                **MATH_FUNCTIONS, **MATH_CONSTANTS,
+                **(params or {})
+            }
+            
+            # Evaluate parametric equations
+            X = ne.evaluate(self.parser.compile_expression(x_expr), local_dict=context)
+            Y = ne.evaluate(self.parser.compile_expression(y_expr), local_dict=context)
+            Z = ne.evaluate(self.parser.compile_expression(z_expr), local_dict=context)
+            
+            # Handle infinite values
+            X = np.where(np.isfinite(X), X, np.nan)
+            Y = np.where(np.isfinite(Y), Y, np.nan)
+            Z = np.where(np.isfinite(Z), Z, np.nan)
+            
+            # Calculate z range
+            z_min = float(np.nanmin(Z))
+            z_max = float(np.nanmax(Z))
+            
+            # Create coordinate list
+            coordinates = []
+            for i in range(resolution):
+                for j in range(resolution):
+                    x, y, z = float(X[i, j]), float(Y[i, j]), float(Z[i, j])
+                    if not (np.isnan(x) or np.isnan(y) or np.isnan(z)):
+                        coordinates.append((x, y, z))
+            
+            return coordinates, (z_min, z_max)
+            
+        except Exception as e:
+            raise ValueError(f"3D parametric evaluation failed: {e}")
 
 # Global evaluator instance
 evaluator = ExpressionEvaluator()

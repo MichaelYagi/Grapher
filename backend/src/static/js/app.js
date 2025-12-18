@@ -2,6 +2,7 @@
 class GrapherApp {
     constructor() {
         this.graphRenderer = new GraphRenderer('graph');
+        this.graphRenderer3D = null; // Will be initialized when needed
         this.currentExpression = '';
         this.currentParameters = {};
         
@@ -13,11 +14,14 @@ class GrapherApp {
             '#ec4899', '#84cc16', '#f97316', '#3b82f6', '#a855f7'
         ];
         
+        // Graph mode management
+        this.currentGraphMode = '2d'; // '2d', 'surface-3d', 'parametric-3d'
+        
         // Range management
         this.currentRange = 'small'; // 'small' or 'large'
         this.ranges = {
-            small: { x: [-10, 10], y: [-10, 10] },
-            large: { x: [-30, 30], y: [-30, 30] }
+            small: { x: [-10, 10], y: [-10, 10], z: [-10, 10] },
+            large: { x: [-30, 30], y: [-30, 30], z: [-30, 30] }
         };
         
         // Set initial range to default display range
@@ -46,15 +50,24 @@ class GrapherApp {
     }
 
     setupEventListeners() {
+        const graphTypeSelect = document.getElementById('graph-type');
         const expressionInput = document.getElementById('expression');
         const plotButton = document.getElementById('plot-btn');
         const toggleGridButton = document.getElementById('toggle-grid-btn');
         const toggleRangeButton = document.getElementById('toggle-range-btn');
         const downloadPngButton = document.getElementById('download-png-btn');
         const downloadSvgButton = document.getElementById('download-svg-btn');
+        const download3dButton = document.getElementById('download-3d-btn');
+        const resetViewButton = document.getElementById('reset-view-btn');
+        const toggleRotationButton = document.getElementById('toggle-rotation-btn');
         const deleteAllButton = document.getElementById('delete-all-btn');
         const hideAllButton = document.getElementById('hide-all-btn');
         const showAllButton = document.getElementById('show-all-btn');
+
+        // Graph type change
+        graphTypeSelect.addEventListener('change', (e) => {
+            this.switchGraphMode(e.target.value);
+        });
 
         // Expression input events
         // expressionInput.addEventListener('input', (e) => {
@@ -92,6 +105,27 @@ class GrapherApp {
             this.graphRenderer.downloadGraph('svg');
         });
 
+        download3dButton.addEventListener('click', () => {
+            if (this.graphRenderer3D) {
+                this.graphRenderer3D.downloadImage('png');
+            }
+        });
+
+        resetViewButton.addEventListener('click', () => {
+            if (this.graphRenderer3D) {
+                this.graphRenderer3D.updateRange(
+                    this.ranges[this.currentRange].x,
+                    this.ranges[this.currentRange].y,
+                    this.ranges[this.currentRange].z
+                );
+            }
+        });
+
+        toggleRotationButton.addEventListener('click', () => {
+            // Toggle rotation would require additional implementation
+            console.log('Toggle rotation not yet implemented');
+        });
+
         // Plots control buttons
         deleteAllButton.addEventListener('click', () => {
             this.deleteAllPlots();
@@ -105,12 +139,22 @@ class GrapherApp {
             this.showAllPlots();
         });
 
-
-
         // Window resize
         // window.addEventListener('resize', () => {
         //     this.handleResize();
         // });
+    }
+
+    // Debounced expression validation for real-time feedback
+    createDebouncedExpressionValidation(delay = 300) {
+        let timeoutId;
+        
+        return (expression) => {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => {
+                this.validateAndParseExpression(expression);
+            }, delay);
+        };
     }
 
     async validateAndParseExpression(expression) {
@@ -165,7 +209,7 @@ class GrapherApp {
 
     async plotFunction() {
         const expressionInput = document.getElementById('expression');
-        const validationMessage= document.getElementById('validation-message');
+        const validationMessage = document.getElementById('validation-message');
 
         expressionInput.classList.add('valid');
         expressionInput.classList.remove('invalid');
@@ -173,66 +217,129 @@ class GrapherApp {
 
         this.currentExpression = expressionInput.value;
 
-        const result = await apiClient.parseExpression(this.currentExpression);
+        if (this.currentGraphMode === '2d') {
+            const result = await apiClient.parseExpression(this.currentExpression);
 
-        if (!result.is_valid) {
-            this.showError(`Current expression is not valid`);
-            expressionInput.classList.remove('valid');
-            expressionInput.classList.add('invalid');
-            validationMessage.textContent = 'Invalid expression';
-            return;
-        }
-
-        if (!this.currentExpression) {
-            this.showError(`Current expression DNE`);
-            expressionInput.classList.remove('valid');
-            expressionInput.classList.add('invalid');
-            validationMessage.textContent = 'Invalid expression';
-            return;
-        }
-
-        const plotButton = document.getElementById('plot-btn');
-        const originalText = plotButton.textContent;
-        plotButton.disabled = true;
-        plotButton.textContent = 'Adding...';
-
-        try {
-            await this.addPlot(this.currentExpression);
-        } catch (error) {
-            console.error('Plotting error:', error);
-            let errorMessage = error.message;
-            if (error.message === "iteration over a 0-d array") {
-                errorMessage = "Invalid expression";
+            if (!result.is_valid) {
+                this.showError(`Current expression is not valid`);
+                expressionInput.classList.remove('valid');
+                expressionInput.classList.add('invalid');
+                validationMessage.textContent = 'Invalid expression';
+                return;
             }
 
-            this.showError(`Plotting failed: ${errorMessage}`);
-            expressionInput.classList.remove('valid');
-            expressionInput.classList.add('invalid');
-            validationMessage.textContent = errorMessage;
-        } finally {
-            plotButton.disabled = false;
-            plotButton.textContent = originalText;
+            if (!this.currentExpression) {
+                this.showError(`Current expression DNE`);
+                expressionInput.classList.remove('valid');
+                expressionInput.classList.add('invalid');
+                validationMessage.textContent = 'Invalid expression';
+                return;
+            }
+
+            const plotButton = document.getElementById('plot-btn');
+            const originalText = plotButton.textContent;
+            plotButton.disabled = true;
+            plotButton.textContent = 'Adding...';
+
+            try {
+                await this.addPlot(this.currentExpression);
+            } catch (error) {
+                console.error('Plotting error:', error);
+                let errorMessage = error.message;
+                if (error.message === "iteration over a 0-d array") {
+                    errorMessage = "Invalid expression";
+                }
+
+                this.showError(`Plotting failed: ${errorMessage}`);
+                expressionInput.classList.remove('valid');
+                expressionInput.classList.add('invalid');
+                validationMessage.textContent = errorMessage;
+            } finally {
+                plotButton.disabled = false;
+                plotButton.textContent = originalText;
+            }
+        } else if (this.currentGraphMode === 'surface-3d') {
+            const surfaceExpression = document.getElementById('surface-expression').value;
+            await this.add3DSurface(surfaceExpression);
+        } else if (this.currentGraphMode === 'parametric-3d') {
+            const xExpr = document.getElementById('parametric-x').value;
+            const yExpr = document.getElementById('parametric-y').value;
+            const zExpr = document.getElementById('parametric-z').value;
+            await this.add3DParametric(xExpr, yExpr, zExpr);
         }
     }
 
-    async checkBackendAvailability() {
+    async add3DSurface(expression) {
+        const plotId = this.plotIdCounter++;
+        const colorIndex = this.plots.length % this.functionColors.length;
+        
+        const plot = {
+            id: plotId,
+            expression: expression,
+            color: this.functionColors[colorIndex],
+            visible: true,
+            data: null,
+            graphType: 'surface-3d'
+        };
+
         try {
-            const response = await apiClient.healthCheck();
-            this.isBackendAvailable = true;
-            console.log('Backend is available:', response);
+            const result = await apiClient.evaluate3DSurface(
+                expression,
+                {},
+                this.ranges[this.currentRange].x,
+                this.ranges[this.currentRange].y,
+                50
+            );
+
+            plot.data = result.graph_data.coordinates;
+            plot.zRange = result.graph_data.z_range;
+
+            this.plots.push(plot);
+            this.renderPlotList();
+            this.updateGraph();
+            this.showSuccess(`Added 3D surface: ${expression}`);
+
         } catch (error) {
-            this.isBackendAvailable = false;
-            console.warn('Backend not available, running in offline mode:', error.message);
-            this.showWarning('Backend not available - running in offline mode with limited functionality');
+            console.error('3D surface plotting error:', error);
+            this.showError(`3D surface plotting failed: ${error.message}`);
         }
     }
 
-    showError(message) {
-        const errorContainer = document.getElementById('error-container');
-        if (message) {
-            errorContainer.innerHTML = `<div class="error">${message}</div>`;
-        } else {
-            errorContainer.innerHTML = '';
+    async add3DParametric(xExpr, yExpr, zExpr) {
+        const plotId = this.plotIdCounter++;
+        const colorIndex = this.plots.length % this.functionColors.length;
+        
+        const plot = {
+            id: plotId,
+            expression: `parametric(${xExpr}, ${yExpr}, ${zExpr})`,
+            color: this.functionColors[colorIndex],
+            visible: true,
+            data: null,
+            graphType: 'parametric-3d'
+        };
+
+        try {
+            const result = await apiClient.evaluate3DParametric(
+                xExpr,
+                yExpr,
+                zExpr,
+                {},
+                this.ranges[this.currentRange].x,
+                this.ranges[this.currentRange].y,
+                50
+            );
+
+            plot.data = result.graph_data.coordinates;
+            plot.zRange = result.graph_data.z_range;
+
+            this.plots.push(plot);
+            this.renderPlotList();
+            this.updateGraph();
+            this.showSuccess(`Added 3D parametric: ${plot.expression}`);
+
+        } catch (error) {
+            console.error('3D parametric plotting error:', error);
+            this.showError(`3D parametric plotting failed: ${error.message}`);
         }
     }
 
@@ -242,9 +349,9 @@ class GrapherApp {
         this.isSmallMobile = window.innerWidth <= 480;
         
         if (this.isMobile) {
-            // this.setupMobileUI();
-            // this.setupMobileKeyboardHandling();
-            // this.setupMobileTouchOptimizations();
+            this.setupMobileUI();
+            this.setupMobileKeyboardHandling();
+            this.setupMobileTouchOptimizations();
         }
     }
 
@@ -336,13 +443,87 @@ class GrapherApp {
         }
     }
 
-    toggleRange() {
-        // Switch between ranges
-        this.currentRange = this.currentRange === 'small' ? 'large' : 'small';
-        const range = this.ranges[this.currentRange];
+    async checkBackendAvailability() {
+        try {
+            const response = await apiClient.healthCheck();
+            this.isBackendAvailable = true;
+            console.log('Backend is available:', response);
+        } catch (error) {
+            this.isBackendAvailable = false;
+            console.warn('Backend not available, running in offline mode:', error.message);
+            this.showWarning('Backend not available - running in offline mode with limited functionality');
+        }
+    }
+
+    showError(message) {
+        const errorContainer = document.getElementById('error-container');
+        if (message) {
+            errorContainer.innerHTML = `<div class="error">${message}</div>`;
+        } else {
+            errorContainer.innerHTML = '';
+        }
+    }
+
+    switchGraphMode(mode) {
+        this.currentGraphMode = mode;
         
-        // Update graph renderer with new range (scales handle the rest)
-        this.graphRenderer.updateRange(range.x, range.y);
+        // Show/hide appropriate controls
+        const surfaceInputs = document.getElementById('surface-inputs');
+        const parametricInputs = document.getElementById('parametric-inputs');
+        const expressionLabel = document.querySelector('label[for="expression"]');
+        const graph2D = document.getElementById('graph-2d');
+        const graph3D = document.getElementById('graph-3d');
+        const controls2D = document.getElementById('2d-controls');
+        const controls3D = document.getElementById('3d-controls');
+
+        // Hide all specialized inputs first
+        surfaceInputs.style.display = 'none';
+        parametricInputs.style.display = 'none';
+
+        if (mode === '2d') {
+            expressionLabel.textContent = 'Mathematical Expression';
+            const expressionInput = document.getElementById('expression');
+            expressionInput.placeholder = 'e.g., x^2 + 2*x + 1';
+            graph2D.style.display = 'block';
+            graph3D.style.display = 'none';
+            controls2D.style.display = 'flex';
+            controls3D.style.display = 'none';
+        } else if (mode === 'surface-3d') {
+            expressionLabel.textContent = 'Surface Expression';
+            surfaceInputs.style.display = 'block';
+            graph2D.style.display = 'none';
+            graph3D.style.display = 'block';
+            controls2D.style.display = 'none';
+            controls3D.style.display = 'flex';
+            
+            // Initialize 3D renderer if needed
+            this.init3DRenderer();
+        } else if (mode === 'parametric-3d') {
+            expressionLabel.textContent = 'Parametric Equations';
+            parametricInputs.style.display = 'block';
+            graph2D.style.display = 'none';
+            graph3D.style.display = 'block';
+            controls2D.style.display = 'none';
+            controls3D.style.display = 'flex';
+            
+            // Initialize 3D renderer if needed
+            this.init3DRenderer();
+        }
+    }
+
+    init3DRenderer() {
+        if (!this.graphRenderer3D) {
+            this.graphRenderer3D = new GraphRenderer3D('graph-3d');
+        }
+    }
+
+    showSuccess(message) {
+        const errorContainer = document.getElementById('error-container');
+        errorContainer.innerHTML = `<div class="success" style="background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">${message}</div>`;
+        
+        setTimeout(() => {
+            errorContainer.innerHTML = '';
+        }, 3000);
     }
 
     async addPlot(expression) {
@@ -490,12 +671,19 @@ class GrapherApp {
         }
 
         container.innerHTML = this.plots.map(plot => {
-            const typeClass = plot.classification?.type || 'explicit';
-            const typeLabel = {
-                'explicit': 'Function',
-                'implicit': 'Implicit',
-                'parametric': 'Parametric'
-            }[typeClass] || 'Function';
+            let typeLabel = 'Function';
+            if (plot.graphType === 'surface-3d') {
+                typeLabel = '3D Surface';
+            } else if (plot.graphType === 'parametric-3d') {
+                typeLabel = '3D Parametric';
+            } else {
+                const typeClass = plot.classification?.type || 'explicit';
+                typeLabel = {
+                    'explicit': 'Function',
+                    'implicit': 'Implicit',
+                    'parametric': 'Parametric'
+                }[typeClass] || 'Function';
+            }
 
             return `
                 <div class="plot-item">
@@ -521,13 +709,14 @@ class GrapherApp {
     }
 
     updateGraph() {
-        // Clear all functions
+        // Separate 2D and 3D plots
+        const plots2D = this.plots.filter(plot => !plot.graphType || plot.graphType === '2d');
+        const plots3D = this.plots.filter(plot => plot.graphType && plot.graphType.includes('3d'));
+
+        // Update 2D graph
         this.graphRenderer.clearAllFunctions();
-        
-        // Add visible plots with their specific colors
-        this.plots.forEach((plot, index) => {
+        plots2D.forEach((plot, index) => {
             if (plot.visible && plot.data) {
-                // Find the color index for this plot
                 const colorIndex = this.functionColors.indexOf(plot.color);
                 this.graphRenderer.plotFunction(
                     plot.expression,
@@ -536,18 +725,41 @@ class GrapherApp {
                 );
             }
         });
+
+        // Update 3D graph if available
+        if (this.graphRenderer3D) {
+            this.graphRenderer3D.clearAllFunctions();
+            plots3D.forEach((plot, index) => {
+                if (plot.visible && plot.data) {
+                    const colorIndex = this.functionColors.indexOf(plot.color);
+                    if (plot.graphType === 'surface-3d') {
+                        this.graphRenderer3D.plotSurface(
+                            plot.expression,
+                            plot.data,
+                            plot.zRange,
+                            colorIndex >= 0 ? colorIndex : index
+                        );
+                    } else if (plot.graphType === 'parametric-3d') {
+                        this.graphRenderer3D.plotParametric(
+                            plot.expression,
+                            plot.data,
+                            plot.zRange,
+                            colorIndex >= 0 ? colorIndex : index
+                        );
+                    }
+                }
+            });
+        }
     }
 
-    showSuccess(message) {
-        const errorContainer = document.getElementById('error-container');
-        errorContainer.innerHTML = `<div class="success" style="background: #d4edda; color: #155724; border: 1px solid #c3e6cb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">${message}</div>`;
+    toggleRange() {
+        // Switch between ranges
+        this.currentRange = this.currentRange === 'small' ? 'large' : 'small';
+        const range = this.ranges[this.currentRange];
         
-        setTimeout(() => {
-            errorContainer.innerHTML = '';
-        }, 3000);
+        // Update graph renderer with new range (scales handle rest)
+        this.graphRenderer.updateRange(range.x, range.y);
     }
-
-
 }
 
 // Initialize the app when DOM is ready

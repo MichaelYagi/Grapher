@@ -6,11 +6,11 @@ from pydantic import ConfigDict
 class Settings(BaseSettings):
     # API Settings
     DEBUG: bool = True
-    HOST: str = "127.0.0.1"
-    PORT: int = 3000
+    HOST: str = "0.0.0.0"
+    PORT: int = 8001
     
     # CORS Settings
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080", "http://127.0.0.1:3000"]
+    ALLOWED_ORIGINS: List[str] = ["*"]
     
     # Cache Settings
     REDIS_URL: Optional[str] = None

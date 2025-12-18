@@ -65,6 +65,28 @@ class ApiClient {
         });
     }
 
+    async evaluate3DSurface(expression, variables = {}, xRange = [-10, 10], yRange = [-10, 10], resolution = 50) {
+        return this.makeRequest('/api/surface-3d', 'POST', {
+            expression,
+            variables,
+            x_range: xRange,
+            y_range: yRange,
+            resolution
+        });
+    }
+
+    async evaluate3DParametric(xExpression, yExpression, zExpression, variables = {}, uRange = [0, 6.283185307179586], vRange = [0, 6.283185307179586], resolution = 50) {
+        return this.makeRequest('/api/parametric-3d', 'POST', {
+            x_expression: xExpression,
+            y_expression: yExpression,
+            z_expression: zExpression,
+            variables,
+            u_range: uRange,
+            v_range: vRange,
+            resolution
+        });
+    }
+
     async healthCheck() {
         return this.makeRequest('/api/health');
     }
@@ -134,4 +156,4 @@ class ApiError extends Error {
 }
 
 // Create global API client instance
-const apiClient = new ApiClient();
+const apiClient = new ApiClient('http://192.168.0.185:8001');
