@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discontinuity Test</title>
+    <script src="backend/src/static/js/d3.v7.min.js"></script>
+</head>
+<body>
+    <h1>Tan(x) Discontinuity Test</h1>
+    <div id="graph"></div>
+    
+    <script>
+        // Test the graph renderer with tan(x)
+        fetch('http://localhost:8000/api/evaluate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                expression: 'tan(x)',
+                x_range: [-10, 10],
+                num_points: 500
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('API Response:', data);
+            console.log('Segments found:', data.segments ? data.segments.length : 0);
+            
+            if (data.segments) {
+                data.segments.forEach((segment, i) => {
+                    console.log(`Segment ${i}: ${segment.x.length} points`);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    </script>
+</body>
+</html>

@@ -39,6 +39,9 @@ start.bat
 
 That's it! The app will be running at http://localhost:3000
 
+### Alternatively:
+```\backend\src> python -m uvicorn main:app --host <private_ip> --port 3000```
+
 ## 📋 What this command does:
 - Installs dependencies automatically (handles managed environments)
 - Starts server immediately

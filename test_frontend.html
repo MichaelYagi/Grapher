@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discontinuity Fix Test</title>
+    <script src="backend/src/static/js/d3.v7.min.js"></script>
+    <script src="backend/src/static/js/graph-renderer.js"></script>
+</head>
+<body>
+    <h1>Discontinuity Fix Test</h1>
+    <p>Testing tan(x) and x*tan(x) with improved discontinuity detection</p>
+    
+    <div style="display: flex; gap: 20px;">
+        <div>
+            <h2>tan(x)</h2>
+            <svg id="graph1" width="300" height="300"></svg>
+        </div>
+        <div>
+            <h2>x*tan(x)</h2>
+            <svg id="graph2" width="300" height="300"></svg>
+        </div>
+    </div>
+
+    <script>
+        // Test the fixed API
+        async function testFunction(expression, svgId) {
+            try {
+                const response = await fetch('http://localhost:3000/api/evaluate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        expression: expression,
+                        x_range: [-10, 10],
+                        num_points: 500
+                    })
+                });
+                
+                const data = await response.json();
+                console.log(`${expression} data:`, data);
+                
+                // Create graph renderer
+                const renderer = new GraphRenderer(svgId, {
+                    width: 300,
+                    height: 300,
+                    xRange: [-10, 10],
+                    yRange: [-10, 10]
+                });
+                
+                // Plot with segments if available
+                if (data.graph_data.segments && data.graph_data.segments.length > 0) {
+                    console.log(`${expression} has ${data.graph_data.segments.length} segments`);
+                    
+                    data.graph_data.segments.forEach((segment, i) => {
+                        const coords = segment.x.map((x, j) => ({
+                            x: x,
+                            y: segment.y[j]
+                        }));
+                        
+                        renderer.plotFunction(`${expression}_segment_${i}`, coords, 0, [segment], expression);
+                    });
+                } else {
+                    // Fallback to coordinates only
+                    console.log(`${expression} using coordinates only`);
+                    renderer.plotFunction(expression, data.graph_data.coordinates, 0);
+                }
+                
+            } catch (error) {
+                console.error(`Error with ${expression}:`, error);
+            }
+        }
+        
+        // Test both functions
+        testFunction('tan(x)', 'graph1');
+        testFunction('x*tan(x)', 'graph2');
+    </script>
+</body>
+</html>
