@@ -1,0 +1,4 @@
+INFO:     Will watch for changes in these directories: ['/mnt/c/Users/micha/Documents/Development/Grapher']
+INFO:     Uvicorn running on http://127.0.0.1:3000 (Press CTRL+C to quit)
+INFO:     Started reloader process [11936] using statreload
+INFO:     Stopping reloader process [11936]
